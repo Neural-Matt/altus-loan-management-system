@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  altus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: altus-loan-management
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Optional: Mount logs for debugging
+      - ./logs:/var/log/nginx
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - altus-network
+
+  # Optional: Add a reverse proxy for HTTPS (uncomment if needed)
+  # nginx-proxy:
+  #   image: nginx:alpine
+  #   container_name: altus-proxy
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./ssl:/etc/nginx/ssl
+  #     - ./proxy.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - altus-app
+  #   networks:
+  #     - altus-network
+
+networks:
+  altus-network:
+    driver: bridge
+
+# Optional: Add volumes for persistent data if needed
+# volumes:
+#   altus-data:
+#     driver: local

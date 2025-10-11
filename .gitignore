@@ -104,10 +104,8 @@ temp/
 Thumbs.db
 .DS_Store
 
-# Docker
+# Docker - only ignore .dockerignore, but include Dockerfiles and compose files
 .dockerignore
-Dockerfile*
-docker-compose*.yml
 
 # Build artifacts
 *.zip

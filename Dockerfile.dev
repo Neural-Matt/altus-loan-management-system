@@ -1,0 +1,22 @@
+# Development Dockerfile with hot reload
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose development port
+EXPOSE 3000
+
+# Add health check for development
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server with hot reload
+CMD ["npm", "start"]
