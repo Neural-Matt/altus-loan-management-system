@@ -150,7 +150,15 @@ export const DocumentsStep: React.FC = () => {
       if (pct >= 95) {
         clearInterval(interval);
         activeIntervalsRef.current = activeIntervalsRef.current.filter(id => id !== interval);
-        const ocr = await attemptOcr(renamedFile);
+        
+        // Safely attempt OCR with error handling
+        let ocr = null;
+        try {
+          ocr = await attemptOcr(renamedFile);
+        } catch (ocrError) {
+          console.warn('OCR processing failed for file:', renamedFile.name, ocrError);
+        }
+        
         let notes = 'Basic checks passed';
         if (ocr?.detectedNrc && customer?.nrc && type === 'nrc-front') {
           notes += ocr.detectedNrc.toLowerCase() === String(customer.nrc).toLowerCase() ? ' | NRC match confirmed' : ' | NRC mismatch';

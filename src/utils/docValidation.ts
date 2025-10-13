@@ -42,18 +42,67 @@ export interface OcrResult { snippet: string; fullText?: string; detectedNrc?: s
 const NRC_REGEX = /[A-Z0-9/]{6,12}/i;
 
 export async function attemptOcr(file: File): Promise<OcrResult | null> {
-  if (!(file.type.startsWith('image/') || file.type === 'application/pdf')) return null;
+  // Check if file is valid for OCR processing
+  if (!(file.type.startsWith('image/') || file.type === 'application/pdf')) {
+    console.warn('File type not supported for OCR:', file.type);
+    return null;
+  }
+  
+  // Check file size (avoid processing very large files)
+  if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    console.warn('File too large for OCR processing:', file.size);
+    return null;
+  }
+  
+  // Check if file is actually readable
+  if (!file.size || file.size === 0) {
+    console.warn('File is empty or unreadable');
+    return null;
+  }
+  
+  let worker = null;
   try {
     const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker('eng');
-    const { data } = await worker.recognize(file);
-    await worker.terminate();
+    
+    // Create a worker with better error handling
+    worker = await createWorker('eng');
+    
+    // Validate that the file can be read as an image
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Invalid image file'));
+      img.src = url;
+    });
+    
+    URL.revokeObjectURL(url);
+    
+    // Perform OCR with timeout
+    const { data } = await Promise.race([
+      worker.recognize(file),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OCR timeout')), 30000) // 30 second timeout
+      )
+    ]) as any;
+    
     const fullText: string = data.text || '';
     const snippet = fullText.trim().slice(0, 160);
     const match = fullText.match(NRC_REGEX);
+    
     return { snippet, fullText, detectedNrc: match ? match[0] : null };
   } catch (e) {
-    console.warn('OCR failed', e);
+    console.warn('OCR failed:', e instanceof Error ? e.message : 'Unknown error');
     return null;
+  } finally {
+    // Ensure worker is always terminated
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (terminateError) {
+        console.warn('Failed to terminate OCR worker:', terminateError);
+      }
+    }
   }
 }

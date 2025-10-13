@@ -1,9 +1,92 @@
 import React, { useEffect, useState } from 'react';
-import { AppBar, Toolbar, Box, IconButton, Button, Link as MLink } from '@mui/material';
+import { AppBar, Toolbar, Box, IconButton, Button, Link as MLink, Typography } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import PersonIcon from '@mui/icons-material/Person';
 
-const LOGO_SRC = 'https://altusfinancialservices.com/assets/img/logo.png';
+// Logo component with multiple fallbacks for reliability
+const AltusLogo: React.FC<{ height?: number; elevated?: boolean }> = ({ height = 48, elevated = false }) => {
+  const [currentSrc, setCurrentSrc] = useState(0);
+  const [showTextFallback, setShowTextFallback] = useState(false);
+  
+  // Logo sources in order of preference
+  const logoSources = [
+    '/altus-logo.png', // Local PNG logo (primary - actual Altus logo)
+    'https://altusfinancialservices.com/assets/img/logo.png', // External logo (fallback)
+  ];
+
+  const handleImageError = () => {
+    if (currentSrc < logoSources.length - 1) {
+      // Try next logo source
+      setCurrentSrc(currentSrc + 1);
+    } else {
+      // All image sources failed, show text fallback
+      setShowTextFallback(true);
+    }
+  };
+
+  // Reset to first source when elevated state changes (component refresh)
+  useEffect(() => {
+    setCurrentSrc(0);
+    setShowTextFallback(false);
+  }, []);
+
+  if (showTextFallback) {
+    // Text logo fallback - always works
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            width: height * 0.8,
+            height: height * 0.8,
+            borderRadius: '50%',
+            background: elevated ? '#73B62B' : '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '2px solid',
+            borderColor: elevated ? '#FFFFFF' : '#73B62B',
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: height * 0.3,
+              fontWeight: 900,
+              color: elevated ? '#FFFFFF' : '#73B62B',
+              lineHeight: 1,
+            }}
+          >
+            A
+          </Typography>
+        </Box>
+        <Typography 
+          variant="h4" 
+          component="div" 
+          sx={{ 
+            fontWeight: 800,
+            fontSize: height * 0.33,
+            color: elevated ? '#73B62B' : '#FFFFFF',
+            letterSpacing: -0.5,
+            fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif'
+          }}
+        >
+          ALTUS
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <img 
+      src={logoSources[currentSrc]} 
+      alt="Altus Financial Services" 
+      style={{ 
+        height, 
+        objectFit: 'contain'
+      }}
+      onError={handleImageError}
+    />
+  );
+};
 
 interface NavItem {
   label: string;
@@ -43,7 +126,7 @@ export const Header: React.FC = () => {
       }}>
         <Toolbar sx={{ display:'flex', gap:4, minHeight:72, position:'relative' }}>
           <Box component={Link} to="/" sx={{ display:'flex', alignItems:'center' }}>
-            <img src={LOGO_SRC} alt="Altus" style={{ height:48, objectFit:'contain' }} />
+            <AltusLogo height={48} elevated={elevated} />
           </Box>
           <Box sx={{
             position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)',

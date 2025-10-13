@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#011A41"/>
+  
+  <!-- Letter 'A' for Altus -->
+  <path d="M10 24 L16 8 L22 24 M12.5 20 L19.5 20" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Small accent dot -->
+  <circle cx="16" cy="6" r="1.5" fill="#73B62B"/>
+</svg>

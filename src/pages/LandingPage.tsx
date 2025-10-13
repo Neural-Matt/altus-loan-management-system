@@ -41,8 +41,8 @@ export const LandingPage: React.FC = () => {
   const runQuickEstimate = () => {
     if (!calcAmount || !calcTenure) { setEstimate(null); return; }
     // Use the same calculation logic as the main calculator
-    try {
-      import('../utils/loanCalculator').then(({ computeLocalLoanEstimate }) => {
+    import('../utils/loanCalculator').then(({ computeLocalLoanEstimate }) => {
+      try {
         const result = computeLocalLoanEstimate({ 
           principal: Number(calcAmount), 
           tenureMonths: Number(calcTenure), 
@@ -53,11 +53,14 @@ export const LandingPage: React.FC = () => {
           total: result.totalPayable, 
           interestPct: Math.round((result.totalInterest / Number(calcAmount)) * 100) 
         });
-      });
-    } catch (error) {
-      console.error('Estimation failed:', error);
+      } catch (error) {
+        console.error('Estimation failed:', error);
+        setEstimate(null);
+      }
+    }).catch(error => {
+      console.error('Failed to load calculator:', error);
       setEstimate(null);
-    }
+    });
   };
 
   return (
