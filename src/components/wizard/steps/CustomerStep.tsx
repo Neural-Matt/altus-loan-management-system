@@ -107,11 +107,27 @@ export const CustomerStep: React.FC = () => {
         }
       };
 
-      // Call the API
-      await createRetailCustomer(customerRequest);
-      push('Customer details saved successfully!', 'success');
+      // Call the API and wait for the response
+      console.log('🧑‍💼 Creating customer with API...', customerRequest);
+      const createdCustomer = await createRetailCustomer(customerRequest);
+      
+      if (createdCustomer && createdCustomer.customerId) {
+        console.log('✅ Customer created successfully:', createdCustomer.customerId);
+        
+        // Update wizard data with the returned customer ID and API data
+        setCustomer({
+          ...values,
+          customerId: createdCustomer.customerId,
+          apiCustomerData: createdCustomer // Store the full API response
+        });
+        
+        push(`Customer created successfully! ID: ${createdCustomer.customerId}`, 'success');
+      } else {
+        console.warn('⚠️ Customer creation returned no data');
+        push('Customer details saved locally, but API integration may have failed.', 'warning');
+      }
     } catch (err) {
-      console.error('Error creating customer:', err);
+      console.error('❌ Error creating customer:', err);
       push('Failed to save customer details. Please try again.', 'error');
       throw err; // Re-throw to prevent wizard from advancing
     }

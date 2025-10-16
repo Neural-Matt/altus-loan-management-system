@@ -15,13 +15,35 @@ import type {
 
 // API Configuration
 const ALTUS_BASE_URL = 'http://3.6.174.212:5010/';
-const BEARER_TOKEN = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
 
 // Request timeout in milliseconds (30 seconds)
 const REQUEST_TIMEOUT = 30000;
 
+// Get Bearer token from environment or localStorage with fallback
+const getInitialBearerToken = (): string | null => {
+  // Priority 1: Environment variable (recommended for production)
+  const envToken = process.env.REACT_APP_ALTUS_BEARER_TOKEN;
+  if (envToken && envToken.length > 50) {
+    console.log('[Altus API] Using Bearer token from environment variable');
+    return envToken;
+  }
+  
+  // Priority 2: localStorage (for development/testing)
+  const storedToken = localStorage.getItem('altus_bearer_token');
+  if (storedToken && storedToken.length > 50) {
+    console.log('[Altus API] Using Bearer token from localStorage');
+    return storedToken;
+  }
+  
+  // Priority 3: Fallback token (UAT token - should be replaced)
+  const fallbackToken = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
+  console.warn('[Altus API] Using fallback Bearer token - this should be replaced with your actual UAT token');
+  console.warn('[Altus API] Set REACT_APP_ALTUS_BEARER_TOKEN environment variable or use updateBearerToken()');
+  return fallbackToken;
+};
+
 // Token storage for dynamic updates
-let currentBearerToken: string | null = BEARER_TOKEN;
+let currentBearerToken: string | null = getInitialBearerToken();
 
 // Custom error types
 export interface AltusApiError {
@@ -64,13 +86,22 @@ const getBearerToken = (): string | null => {
 // Function to update the Bearer token dynamically
 export const updateBearerToken = (newToken: string | null): void => {
   currentBearerToken = newToken;
-  console.log('[Altus API] Bearer token updated');
+  
+  // Also store in localStorage for persistence across sessions
+  if (newToken) {
+    localStorage.setItem('altus_bearer_token', newToken);
+    console.log('[Altus API] Bearer token updated and stored');
+  } else {
+    localStorage.removeItem('altus_bearer_token');
+    console.log('[Altus API] Bearer token cleared from storage');
+  }
 };
 
 // Function to clear the Bearer token
 export const clearBearerToken = (): void => {
   currentBearerToken = null;
-  console.log('[Altus API] Bearer token cleared');
+  localStorage.removeItem('altus_bearer_token');
+  console.log('[Altus API] Bearer token cleared from memory and storage');
 };
 
 // Function to get current token status for debugging
@@ -600,7 +631,7 @@ export function handleAltusResponse<T extends {
 }
 
 // Create a new retail customer
-export async function createRetailCustomer(data: RetailCustomerRequest): Promise<CustomerDetailsResponse['outParams']> {
+export async function createRetailCustomer(data: RetailCustomerRequest): Promise<CustomerDetailsResponse> {
   const customerServicesClient = axios.create({
     baseURL: 'http://3.6.174.212:5011/',
     timeout: REQUEST_TIMEOUT,
@@ -612,11 +643,39 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
   });
 
   try {
-    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices', {
-      body: data
-    });
+    // UAT API requires specific request format with 'body' wrapper and specific fields
+    const uatRequest = {
+      body: {
+        Command: "Create",
+        FirstName: data.firstName,
+        MiddleName: "", // Optional field
+        LastName: data.lastName || "",
+        CustomerStatus: "Active",
+        NRCIssueDate: "07/01/2020 00:00:00", // TODO: Use actual NRC issue date
+        UpdatedBy: "system", // TODO: Use actual user
+        PrimaryAddress: data.address?.street || "",
+        ProvinceName: data.address?.province || "Lusaka",
+        DistrictName: data.address?.city || "Lusaka", 
+        CountryName: data.address?.country || "Zambia",
+        Postalcode: data.address?.postalCode || "10101",
+        NRCNumber: data.nrc,
+        ContactNo: data.phoneNumber,
+        EmailID: data.emailAddress || "",
+        BranchName: "Lusaka", // TODO: Use actual branch
+        GenderName: data.gender || "Male",
+        Title: data.gender === "Female" ? "Mrs" : "Mr",
+        DOB: data.dateOfBirth || "01/01/1990 00:00:00",
+        FinancialInstitutionName: data.bankDetails?.bankName || "Indo Zambia Bank",
+        FinancialInstitutionBranchName: data.bankDetails?.branchCode || "Lusaka",
+        AccountNumber: data.bankDetails?.accountNumber || "TBC",
+        AccountType: data.bankDetails?.accountType || "Savings"
+      }
+    };
 
-    return handleAltusResponse(response.data, 'Create Retail Customer');
+    console.log('Debug: UAT Customer Creation Request:', uatRequest);
+    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices/RetailCustomer', uatRequest);
+
+    return response.data; // Return full UAT response
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const altusError = handleApiError(error);
@@ -720,9 +779,15 @@ export async function getCustomerDetails(identityNo: string): Promise<CustomerDe
   });
 
   try {
-    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices', {
-      body: { identityNo }
-    });
+    // UAT API request format
+    const uatRequest = {
+      body: {
+        IdentityNo: identityNo
+      }
+    };
+
+    console.log('Debug: UAT Get Customer Request:', uatRequest);
+    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices/GetCustomerDetails', uatRequest);
 
     return handleAltusResponse(response.data, 'Get Customer Details');
   } catch (error) {
@@ -827,14 +892,32 @@ export async function getLoanProductDetails(productCode: string, employerId: str
 // Base URL: http://3.6.174.212:5010/API/LoanServices (same as Loan Services)
 // ============================================================================
 
-// Submit a new loan request
-export async function submitLoanRequest(data: any): Promise<LoanRequestResponse['outParams']> {
+// Submit a new loan request (returns ApplicationNumber needed for document upload)
+export async function submitLoanRequest(data: any): Promise<LoanRequestResponse> {
   try {
-    const response = await altusApiClient.post<LoanRequestResponse>('API/LoanServices', {
-      body: data
-    });
+    // UAT API request format for salaried loan request
+    const uatRequest = {
+      body: {
+        TypeOfCustomer: "Existing", // Since we created customer first
+        CustomerId: data.customerId,
+        IdentityNo: data.identityNo || data.nrc,
+        ContactNo: data.contactNo || data.phoneNumber,
+        EmailId: data.emailId || data.emailAddress,
+        Tenure: data.tenureMonths || 12,
+        LoanAmount: data.requestedAmount || data.loanAmount,
+        EmployerName: data.employerName || "",
+        PayrollNo: data.payrollNo || "",
+        NetSalary: data.netSalary || 0,
+        GrossSalary: data.grossSalary || 0,
+        DateOfBirth: data.dateOfBirth || "01/01/1990 00:00:00",
+        Gender: data.gender || "Male"
+      }
+    };
 
-    return handleAltusResponse(response.data, 'Submit Loan Request');
+    console.log('Debug: UAT Loan Request:', uatRequest);
+    const response = await altusApiClient.post<LoanRequestResponse>('API/LoanServices/SalariedLoanRequest', uatRequest);
+
+    return response.data; // Return full UAT response
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const altusError = handleApiError(error);
@@ -844,17 +927,93 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse[
   }
 }
 
-// Upload loan document (uses FormData for file upload)
-export async function uploadLoanDocument(formData: FormData): Promise<UploadDocumentResponse['outParams']> {
+// Convert file to byte format for UAT API
+async function fileToByteFormat(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        // Convert ArrayBuffer to base64 string for byte format
+        const bytes = new Uint8Array(reader.result as ArrayBuffer);
+        let binaryString = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binaryString += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binaryString);
+        resolve(base64);
+      } else {
+        reject(new Error('Failed to read file'));
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Map document types to UAT API codes
+const getUATDocumentTypeCode = (docType: string): string => {
+  const typeMap: Record<string, string> = {
+    'nrc-front': '6',        // NRC ID (Client)
+    'nrc-back': '6',         // NRC ID (Client) 
+    'payslip-1': '18',       // Payslip (Last 3 months)
+    'payslip-2': '18',       // Payslip (Last 3 months)
+    'payslip-3': '18',       // Payslip (Last 3 months)
+    'payslip': '18',         // Payslip (Last 3 months)
+    'reference-letter': '3', // Business Registration Certificate (City Council)
+    'work-id': '29',         // Employment Contract
+    'selfie': '17',          // Passport (closest match for photo)
+    'bank-statement': '30',  // Order Copies (closest match)
+    'combined-payslips': '18' // Payslip (Last 3 months)
+  };
+  
+  return typeMap[docType] || '30'; // Default to "Order Copies"
+};
+
+// Upload loan document (completely rewritten for UAT API)
+export async function uploadLoanDocument(applicationNumber: string, documentType: string, file: File, documentNo?: string): Promise<UploadDocumentResponse> {
   try {
-    // Create a custom config for multipart form data
-    const uploadResponse = await altusApiClient.post<UploadDocumentResponse>('API/LoanServices', formData, {
+    // Create document upload client (port 5013)
+    const documentUploadClient = axios.create({
+      baseURL: 'http://3.6.174.212:5013/',
+      timeout: REQUEST_TIMEOUT,
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${getBearerToken()}`
       },
     });
 
-    return handleAltusResponse(uploadResponse.data, 'Upload Loan Document');
+    // Convert file to byte format
+    console.log('Debug: Converting file to byte format...');
+    const documentContent = await fileToByteFormat(file);
+    
+    // Get UAT document type code
+    const typeCode = getUATDocumentTypeCode(documentType);
+    
+    // UAT API request format
+    const uatRequest = {
+      body: {
+        ApplicationNumber: applicationNumber,
+        TypeOfDocument: typeCode,
+        DocumentNo: documentNo || Date.now().toString(),
+        Document: {
+          documentContent: documentContent,
+          documentName: file.name
+        }
+      }
+    };
+
+    console.log('Debug: UAT Document Upload Request:', {
+      applicationNumber,
+      documentType,
+      typeCode,
+      fileName: file.name,
+      fileSize: file.size
+    });
+
+    const uploadResponse = await documentUploadClient.post<UploadDocumentResponse>('API/LoanRequest/LoanRequestDocuments', uatRequest);
+
+    return uploadResponse.data; // Return full UAT response
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const altusError = handleApiError(error);
@@ -862,6 +1021,19 @@ export async function uploadLoanDocument(formData: FormData): Promise<UploadDocu
     }
     throw error;
   }
+}
+
+// Legacy function for backward compatibility (now deprecated)
+export async function uploadLoanDocumentLegacy(formData: FormData): Promise<UploadDocumentResponse['outParams']> {
+  console.warn('Warning: uploadLoanDocumentLegacy is deprecated. Use uploadLoanDocument with ApplicationNumber instead.');
+  throw new AltusApiException({
+    message: 'Document upload requires ApplicationNumber from loan request. Please submit loan request first.',
+    code: 'WORKFLOW_ERROR',
+    details: { 
+      requiredFlow: 'Customer Creation → Loan Request → Document Upload',
+      currentApi: 'uploadLoanDocument(applicationNumber, documentType, file)'
+    }
+  });
 }
 
 // Export the configured axios instance for advanced usage
@@ -903,6 +1075,7 @@ const altusApi = {
   // Loan Request Services API
   submitLoanRequest,
   uploadLoanDocument,
+  uploadLoanDocumentLegacy, // For backward compatibility
   
   // Raw axios client for advanced usage
   client: altusApiClient,

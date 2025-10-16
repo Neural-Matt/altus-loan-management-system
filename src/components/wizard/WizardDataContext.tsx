@@ -31,6 +31,9 @@ export interface CustomerInput extends Partial<Customer> {
   accommodationType?: string; // rented | owned | other
   nextOfKin?: NextOfKinInfo;
   reference?: ReferenceInfo;
+  // API Integration fields
+  customerId?: string; // Altus Customer ID returned from API
+  apiCustomerData?: any; // Full API response data for reference
 }
 
 export interface LoanParams {

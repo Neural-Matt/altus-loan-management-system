@@ -427,7 +427,7 @@ export interface AltusContextType {
   
   // Loan request operations
   submitLoanRequest: (requestData: any) => Promise<LoanRequestData | null>;
-  uploadLoanDocument: (formData: FormData) => Promise<UploadDocumentResponse['outParams'] | null>;
+  uploadLoanDocument: (applicationNumber: string, documentType: string, file: File) => Promise<UploadDocumentResponse['outParams'] | null>;
   
   // Loan product operations
   fetchLoanProducts: (employerId?: string) => Promise<LoanProductResponse['outParams'][] | null>;
@@ -508,22 +508,22 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       if (customerDetails) {
         const customerData: CustomerData = {
-          customerId: customerDetails.customerId,
-          firstName: customerDetails.firstName,
-          lastName: customerDetails.lastName,
-          nrc: customerDetails.nrc,
-          phoneNumber: customerDetails.phoneNumber,
-          emailAddress: customerDetails.emailAddress,
-          nationality: customerDetails.nationality,
-          otherNationality: customerDetails.otherNationality,
-          status: customerDetails.status,
-          registrationDate: customerDetails.registrationDate,
-          lastUpdated: customerDetails.lastUpdated,
-          employment: customerDetails.employment,
-          address: customerDetails.address,
-          totalLoans: customerDetails.totalLoans,
-          activeLoans: customerDetails.activeLoans,
-          totalOutstanding: customerDetails.totalOutstanding,
+          customerId: customerDetails.CustomerID,
+          firstName: '',
+          lastName: '',
+          nrc: '',
+          phoneNumber: '',
+          emailAddress: '',
+          nationality: '',
+          otherNationality: '',
+          status: 'Active' as const,
+          registrationDate: '',
+          lastUpdated: '',
+          employment: {} as any,
+          address: {} as any,
+          totalLoans: 0,
+          activeLoans: 0,
+          totalOutstanding: 0,
         };
 
         dispatch({ type: 'SET_CUSTOMER', payload: customerData });
@@ -547,26 +547,35 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setError('customer', null);
 
       const result = await altusApi.createRetailCustomer(customerData);
+      console.log('Debug: Customer creation result:', result);
       
-      if (result) {
+      if (result && result.executionStatus === 'Success' && result.outParams?.CustomerID) {
+        // UAT API returns CustomerID, so we need to use the original request data
+        // and combine it with the returned customer ID
         const newCustomer: CustomerData = {
-          customerId: result.customerId,
-          firstName: result.firstName,
-          lastName: result.lastName,
-          nrc: result.nrc,
-          phoneNumber: result.phoneNumber,
-          emailAddress: result.emailAddress,
-          nationality: result.nationality,
-          otherNationality: result.otherNationality,
-          status: result.status,
-          registrationDate: result.registrationDate,
-          lastUpdated: result.lastUpdated,
-          employment: result.employment,
-          address: result.address,
+          customerId: result.outParams.CustomerID,
+          firstName: customerData.firstName,
+          lastName: customerData.lastName || '',
+          nrc: customerData.nrc,
+          phoneNumber: customerData.phoneNumber,
+          emailAddress: customerData.emailAddress,
+          nationality: customerData.nationality,
+          otherNationality: customerData.otherNationality,
+          status: 'Active', // Default from UAT spec
+          registrationDate: new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+          employment: customerData.employment ? {
+            employerId: customerData.employment.employerId,
+            employerName: customerData.employment.employerName,
+            position: customerData.employment.position,
+            salary: customerData.employment.salary,
+          } : undefined,
+          address: customerData.address,
         };
 
         dispatch({ type: 'SET_CUSTOMER', payload: newCustomer });
         dispatch({ type: 'SET_SUCCESS_FLAG', payload: { flag: 'customerCreated', value: true } });
+        console.log('✅ Customer stored in context:', newCustomer);
         return newCustomer;
       }
 
@@ -589,16 +598,16 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       if (result) {
         const newCustomer: CustomerData = {
-          customerId: result.customerId,
-          firstName: result.firstName,
-          lastName: result.lastName,
-          nrc: result.nrc,
-          phoneNumber: result.phoneNumber,
-          emailAddress: result.emailAddress,
-          nationality: result.nationality,
-          status: result.status,
-          registrationDate: result.registrationDate,
-          lastUpdated: result.lastUpdated,
+          customerId: result.CustomerID,
+          firstName: '',
+          lastName: '',
+          nrc: '',
+          phoneNumber: '',
+          emailAddress: '',
+          nationality: '',
+          status: 'Active' as const,
+          registrationDate: '',
+          lastUpdated: '',
         };
 
         dispatch({ type: 'SET_CUSTOMER', payload: newCustomer });
@@ -625,19 +634,19 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       if (result) {
         const updatedCustomer: CustomerData = {
-          customerId: result.customerId,
-          firstName: result.firstName,
-          lastName: result.lastName,
-          nrc: result.nrc,
-          phoneNumber: result.phoneNumber,
-          emailAddress: result.emailAddress,
-          nationality: result.nationality,
-          otherNationality: result.otherNationality,
-          status: result.status,
-          registrationDate: result.registrationDate,
-          lastUpdated: result.lastUpdated,
-          employment: result.employment,
-          address: result.address,
+          customerId: result.CustomerID,
+          firstName: '',
+          lastName: '',
+          nrc: '',
+          phoneNumber: '',
+          emailAddress: '',
+          nationality: '',
+          otherNationality: '',
+          status: 'Active' as const,
+          registrationDate: '',
+          lastUpdated: '',
+          employment: {} as any,
+          address: {} as any,
         };
 
         dispatch({ type: 'SET_CUSTOMER', payload: updatedCustomer });
@@ -664,16 +673,16 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       if (result) {
         const updatedCustomer: CustomerData = {
-          customerId: result.customerId,
-          firstName: result.firstName,
-          lastName: result.lastName,
-          nrc: result.nrc,
-          phoneNumber: result.phoneNumber,
-          emailAddress: result.emailAddress,
-          nationality: result.nationality,
-          status: result.status,
-          registrationDate: result.registrationDate,
-          lastUpdated: result.lastUpdated,
+          customerId: result.CustomerID,
+          firstName: '',
+          lastName: '',
+          nrc: '',
+          phoneNumber: '',
+          emailAddress: '',
+          nationality: '',
+          status: 'Active' as const,
+          registrationDate: '',
+          lastUpdated: '',
         };
 
         dispatch({ type: 'SET_CUSTOMER', payload: updatedCustomer });
@@ -836,27 +845,37 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       const result = await altusApi.submitLoanRequest(requestData);
       
-      if (result) {
+      if (result && result.executionStatus === 'Success' && result.outParams?.ApplicationNumber) {
+        // UAT format uses ApplicationNumber in outParams
         const loanRequestData: LoanRequestData = {
-          applicationId: result.applicationId,
-          referenceNumber: result.referenceNumber,
-          customerId: result.customerId,
-          productCode: result.productCode,
-          requestedAmount: result.requestedAmount || requestData.amount,
-          tenureMonths: result.tenureMonths || requestData.tenureMonths,
-          currency: result.currency,
-          status: result.status as LoanStatus,
-          applicationDate: result.applicationDate,
-          lastUpdated: result.lastUpdated,
-          estimatedProcessingDays: result.estimatedProcessingDays,
-          nextAction: result.nextAction,
-          workflow: result.workflow,
+          applicationId: result.outParams.ApplicationNumber,
+          referenceNumber: result.outParams.ApplicationNumber, // Use ApplicationNumber as reference
+          customerId: requestData.customerId,
+          productCode: requestData.productCode || 'PBL001',
+          requestedAmount: requestData.amount,
+          tenureMonths: requestData.tenureMonths,
+          currency: 'ZMW',
+          status: 'Submitted' as LoanStatus,
+          applicationDate: new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+          estimatedProcessingDays: 5,
+          nextAction: 'Document Upload',
+          workflow: [{
+            stage: 'Submitted',
+            status: 'Completed',
+            startDate: new Date().toISOString(),
+            completedDate: new Date().toISOString(),
+            assignedTo: 'System',
+            comments: 'Loan request submitted successfully'
+          }],
         };
 
         dispatch({ type: 'SET_LOAN_REQUEST', payload: loanRequestData });
         dispatch({ type: 'SET_SUCCESS_FLAG', payload: { flag: 'loanRequestSubmitted', value: true } });
         setLastFetched('loanRequest');
         return loanRequestData;
+      } else {
+        throw new Error(`Loan request failed: ${result?.executionMessage || 'Unknown error'}`);
       }
 
       return null;
@@ -869,19 +888,19 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [createApiError, setLoading, setError, setLastFetched]);
 
-  const uploadLoanDocument = useCallback(async (formData: FormData): Promise<UploadDocumentResponse['outParams'] | null> => {
+  const uploadLoanDocument = useCallback(async (applicationNumber: string, documentType: string, file: File): Promise<UploadDocumentResponse['outParams'] | null> => {
     try {
       setLoading('uploadingDocument', true);
       setError('loanRequest', null);
 
-      const result = await altusApi.uploadLoanDocument(formData);
+      const result = await altusApi.uploadLoanDocument(applicationNumber, documentType, file);
       
-      if (result) {
+      if (result && result.executionStatus === 'Success' && result.outParams?.LRDocumentDetailsId) {
         dispatch({ type: 'SET_SUCCESS_FLAG', payload: { flag: 'documentUploaded', value: true } });
-        return result;
+        return result.outParams;
       }
 
-      return null;
+      throw new Error(`Document upload failed: ${result?.executionMessage || 'Unknown error'}`);
     } catch (error) {
       const apiError = createApiError(error, 'Failed to upload document');
       setError('loanRequest', apiError);

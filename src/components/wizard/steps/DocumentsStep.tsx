@@ -1,10 +1,11 @@
 import React, { useCallback, useRef, useEffect, useMemo } from 'react';
-import { Box, Typography, Button, Stack, IconButton, Chip, Tooltip, LinearProgress, Divider } from '@mui/material';
+import { Box, Typography, Button, Stack, IconButton, Chip, Tooltip, LinearProgress, Divider, Alert } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useWizardData, UploadedDoc } from '../WizardDataContext';
 import { useSnackbar } from '../../feedback/SnackbarProvider';
 import { useAltus } from '../../../context/AltusContext';
+import { useUATWorkflow } from '../../../hooks/useUATWorkflow';
 import { preValidateFile, attemptOcr } from '../../../utils/docValidation';
 import { mergePayslips } from '../../../utils/payslipMerger';
 
@@ -20,8 +21,9 @@ const docTypes: { label: string; type: UploadedDoc['type']; accept: string; opti
 ];
 
 export const DocumentsStep: React.FC = () => {
-  const { documents, addOrReplaceDocument, removeDocument, customer } = useWizardData();
-  const { uploadLoanDocument, state } = useAltus();
+  const { documents, addOrReplaceDocument, removeDocument, customer, loan } = useWizardData();
+  const { state } = useAltus();
+  const { submitLoanApplication, uploadDocument } = useUATWorkflow();
   // Debug to ensure component is loaded and dependencies resolved
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
@@ -45,46 +47,62 @@ export const DocumentsStep: React.FC = () => {
   const uploadToAPI = useCallback(async (doc: UploadedDoc) => {
     if (!doc.file) return;
     
+    // Check if we're in development/mock mode first
+    const isMockMode = process.env.REACT_APP_MOCK_MODE === 'true';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (isMockMode || isDevelopment) {
+      console.log('Debug: Development/Mock mode - skipping API upload, keeping document as verified');
+      // In development mode, don't change the document status
+      // Let it remain as "verified" so user can proceed to next step
+      push(`${doc.type.replace('-', ' ')} ready for submission! (Development Mode)`, 'info');
+      return;
+    }
+    
     try {
-      // Mark as uploading
+      // Mark as uploading for production mode
       addOrReplaceDocument({ ...doc, status: 'uploading', progress: 0 });
       
-      // Get customer ID from current state
-      const customerId = state.currentCustomer?.customerId;
+      // Get customer ID from wizard data (preferred) or Altus context (fallback)
+      const customerId = customer.customerId || state.currentCustomer?.customerId;
+      console.log('Debug: Customer ID for upload:', customerId);
+      console.log('Debug: Wizard customer data:', customer);
+      console.log('Debug: Altus context customer:', state.currentCustomer);
+      
       if (!customerId) {
-        throw new Error('Customer must be created first before uploading documents');
+        throw new Error('Customer must be created first before uploading documents. Please complete the Customer Information step.');
       }
       
-      // Map document type to API format
+      // Map document type to UAT document type codes
       const documentTypeMap: Record<UploadedDoc['type'], string> = {
-        'nrc-front': 'NRC',
-        'nrc-back': 'NRC_BACK',
-        'payslip': 'PAYSLIP',
-        'payslip-1': 'PAYSLIP_1',
-        'payslip-2': 'PAYSLIP_2', 
-        'payslip-3': 'PAYSLIP_3',
-        'reference-letter': 'REFERENCE_LETTER',
-        'work-id': 'WORK_ID',
-        'selfie': 'SELFIE',
-        'bank-statement': 'BANK_STATEMENT',
-        'combined-payslips': 'COMBINED_PAYSLIPS'
+        'nrc-front': '6',         // NRC ID (Client)
+        'nrc-back': '6',          // NRC ID (Client)
+        'payslip': '18',          // Payslip (Last 3 months)
+        'payslip-1': '18',        // Payslip (Last 3 months) 
+        'payslip-2': '18',        // Payslip (Last 3 months)
+        'payslip-3': '18',        // Payslip (Last 3 months)
+        'reference-letter': '29', // Employment Contract (closest match)
+        'work-id': '29',          // Employment Contract (closest match) 
+        'selfie': '6',            // Use NRC code for selfie
+        'bank-statement': '18',   // Use payslip code for bank statement
+        'combined-payslips': '18' // Payslip (Last 3 months)
       };
       
-      const documentType = documentTypeMap[doc.type] || doc.type.toUpperCase();
+      const documentTypeCode = documentTypeMap[doc.type] || '6'; // Default to NRC
       
-      // Create FormData for API call
-      const formData = new FormData();
-      formData.append('customerId', customerId);
-      formData.append('documentType', documentType);
-      formData.append('file', doc.file);
+      // Step 1: Submit loan application to get ApplicationNumber (UAT requirement)
+      console.log('🚀 Step 1: Submitting loan application to get ApplicationNumber...');
+      const applicationNumber = await submitLoanApplication();
+      console.log('✅ Got ApplicationNumber:', applicationNumber);
       
-      // Call API to upload document
-      const response = await uploadLoanDocument(formData);
+      // Step 2: Upload document using ApplicationNumber
+      console.log('📤 Step 2: Uploading document with ApplicationNumber...');
+      const response = await uploadDocument(applicationNumber, documentTypeCode, doc.file);
       
       // Update document with API response
       addOrReplaceDocument({ 
         ...doc, 
-        id: response?.documentId,
+        id: response,
         status: 'uploaded', 
         progress: 100 
       });
@@ -92,18 +110,36 @@ export const DocumentsStep: React.FC = () => {
       push(`${doc.type.replace('-', ' ')} uploaded successfully!`, 'success');
     } catch (error) {
       console.error('Error uploading document:', error);
+      
+      // Provide helpful error messages
+      let errorMessage = 'Upload failed';
+      if (error instanceof Error) {
+        if (error.message.includes('Customer must be created first')) {
+          errorMessage = 'Please complete the Customer Information step first before uploading documents.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       addOrReplaceDocument({ 
         ...doc, 
         status: 'error', 
-        errorMessage: error instanceof Error ? error.message : 'Upload failed'
+        errorMessage 
       });
-      push(`Failed to upload ${doc.type.replace('-', ' ')}. Please try again.`, 'error');
+      
+      push(`Failed to upload ${doc.type.replace('-', ' ')}. ${errorMessage}`, 'error');
     }
-  }, [addOrReplaceDocument, uploadLoanDocument, state.currentCustomer, push]);
+  }, [addOrReplaceDocument, state.currentCustomer, customer, submitLoanApplication, uploadDocument, push]);
 
   const onSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, type: UploadedDoc['type']) => {
+    console.log('Debug: File selection started for type:', type);
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('Debug: No file selected');
+      return;
+    }
+    
+    console.log('Debug: File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
     
     // Create renamed file with document name and client's NRC
     const getFileExtension = (filename: string) => {
@@ -125,8 +161,12 @@ export const DocumentsStep: React.FC = () => {
     // Create a new file object with the renamed filename
     const renamedFile = new File([file], newFileName, { type: file.type });
     
+    console.log('Debug: Starting file validation for:', renamedFile.name);
     const pre = await preValidateFile(renamedFile);
+    console.log('Debug: File validation result:', pre);
+    
     if (!pre.ok) {
+      console.log('Debug: File validation failed:', pre.error);
       push(pre.error || 'File rejected', 'error');
       addOrReplaceDocument({ file: renamedFile, type, status: 'error', errorMessage: pre.error });
       return;
@@ -241,7 +281,17 @@ export const DocumentsStep: React.FC = () => {
   }, [documents, checkAndMergePayslips]);
   
   const docsByType = useCallback((t: UploadedDoc['type']) => documents.find(d => d.type === t), [documents]);
-  const openPicker = (type: UploadedDoc['type']) => fileInputs.current[type]?.click();
+  const openPicker = (type: UploadedDoc['type']) => {
+    console.log('Debug: Opening file picker for type:', type);
+    const input = fileInputs.current[type];
+    console.log('Debug: File input element:', input);
+    if (input) {
+      input.click();
+      console.log('Debug: File picker clicked');
+    } else {
+      console.error('Debug: File input not found for type:', type);
+    }
+  };
 
   (window as any).__documentsStepValidate = async () => {
     const required: UploadedDoc['type'][] = ['nrc-front','payslip-1','payslip-2','payslip-3'];
@@ -267,6 +317,17 @@ export const DocumentsStep: React.FC = () => {
   return (
     <Box>
       <Typography variant="h6" gutterBottom>Supporting Documents</Typography>
+      
+      {/* Customer Notice */}
+      {!state.currentCustomer?.customerId && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            <strong>Note:</strong> In development mode, you can upload documents without completing the customer step. 
+            In production, customer information must be completed first.
+          </Typography>
+        </Alert>
+      )}
+      
       <Box sx={{ mb:2, p:2, border:'1px solid', borderColor:'divider', borderRadius:2, background: overallPct === 100 ? 'linear-gradient(90deg,#093B18,#2E7D32)' : 'linear-gradient(90deg,#132F52,#063970)', color:'#fff' }}>
         <Stack direction={{ xs:'column', sm:'row' }} spacing={1.5} alignItems={{ xs:'flex-start', sm:'center' }}>
           <Typography variant="subtitle2" sx={{ fontWeight:600 }}>Required Docs: {requiredVerified}/{requiredArr.length} verified</Typography>

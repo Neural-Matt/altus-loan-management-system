@@ -538,7 +538,7 @@ export const createRetailCustomerExample = async (): Promise<void> => {
     };
 
     const customer = await altusApi.createRetailCustomer(retailCustomerData);
-    console.log('Customer created successfully:', customer?.customerId);
+    console.log('Customer created successfully:', customer?.outParams?.CustomerID);
     
   } catch (error) {
     if (error instanceof AltusApiException) {
@@ -661,16 +661,14 @@ export const submitLoanRequestExample = async (): Promise<void> => {
 
     const response = await altusApi.submitLoanRequest(loanRequestData);
     
-    if (response) {
+    if (response && response.executionStatus === 'Success') {
       console.log('Loan request submitted successfully:');
-      console.log(`- Application ID: ${response.applicationId}`);
-      console.log(`- Reference Number: ${response.referenceNumber}`);
-      console.log(`- Status: ${response.status}`);
-      console.log(`- Application Date: ${response.applicationDate}`);
-      
-      if (response.estimatedProcessingDays) {
-        console.log(`- Estimated processing: ${response.estimatedProcessingDays} days`);
-      }
+      console.log(`- Execution Status: ${response.executionStatus}`);
+      console.log(`- Message: ${response.executionMessage}`);
+      console.log(`- Application Number: ${response.outParams?.ApplicationNumber}`);
+      console.log(`- Instance ID: ${response.instanceId}`);
+    } else {
+      console.error('Loan request failed:', response?.executionMessage || 'Unknown error');
     }
     
   } catch (error) {

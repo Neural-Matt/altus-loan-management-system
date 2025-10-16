@@ -167,71 +167,19 @@ export interface RetailCustomerRequest {
 }
 
 // ============================================================================
-// CUSTOMER DETAILS RESPONSE
+// CUSTOMER DETAILS RESPONSE - UAT API Format  
 // ============================================================================
 
+// UAT API Response Format for Customer Creation
 export interface CustomerDetailsResponse extends AltusBaseResponse {
-  outParams?: {
-    customerId: string;
-    customerType: "Retail" | "Business";
-    firstName: string;
-    lastName: string;
-    nrc: string;
-    phoneNumber: string;
-    emailAddress?: string;
-    dateOfBirth?: string;
-    gender?: "Male" | "Female";
-    nationality: string;
-    otherNationality?: string;
-    maritalStatus?: string;
-    registrationDate: string;
-    lastUpdated: string;
-    status: "Active" | "Inactive" | "Suspended" | "Closed";
-    address?: {
-      street?: string;
-      city?: string;
-      province?: string;
-      postalCode?: string;
-      country?: string;
-    };
-    employment?: {
-      employerId: string;
-      employerName: string;
-      employerCode: string;
-      position?: string;
-      department?: string;
-      salary?: number;
-      employmentDate?: string;
-      employmentType?: "Permanent" | "Contract" | "Temporary";
-    };
-    nextOfKin?: {
-      firstName?: string;
-      lastName?: string;
-      relationship?: string;
-      phoneNumber?: string;
-      address?: string;
-    };
-    bankDetails?: {
-      bankName?: string;
-      accountNumber?: string;
-      accountType?: string;
-      branchCode?: string;
-    };
-    creditScore?: number;
-    riskRating?: string;
-    totalLoans?: number;
-    activeLoans?: number;
-    totalOutstanding?: number;
-    documents?: Array<{
-      documentId: string;
-      documentType: string;
-      documentNumber: string;
-      expiryDate?: string;
-      issuingAuthority?: string;
-      verificationStatus: "Verified" | "Pending" | "Rejected";
-      uploadDate: string;
-    }>;
+  executionStatus: 'Success' | 'Failure';
+  executionMessage: string;
+  instanceId: string;
+  outParams: {
+    CustomerID: string;
   };
+  gridParams: any;
+  docParams: any;
 }
 
 // ============================================================================
@@ -292,67 +240,19 @@ export interface LoanProductResponse extends AltusBaseResponse {
 }
 
 // ============================================================================
-// LOAN REQUEST RESPONSE
+// LOAN REQUEST RESPONSE - UAT API Format
 // ============================================================================
 
+// UAT API Response Format for Loan Request
 export interface LoanRequestResponse extends AltusBaseResponse {
-  outParams?: {
-    applicationId: string;
-    referenceNumber: string;
-    customerId: string;
-    productCode: string;
-    requestedAmount: number;
-    tenureMonths: number;
-    currency: string;
-    status: "Submitted" | "Under Review" | "Approved" | "Rejected" | "Cancelled";
-    applicationDate: string;
-    lastUpdated: string;
-    estimatedProcessingDays?: number;
-    nextAction?: string;
-    assignedOfficer?: {
-      officerId: string;
-      officerName: string;
-      contactNumber?: string;
-      emailAddress?: string;
-    };
-    workflow: Array<{
-      stage: string;
-      status: "Pending" | "In Progress" | "Completed" | "Rejected";
-      startDate?: string;
-      completedDate?: string;
-      assignedTo?: string;
-      comments?: string;
-    }>;
-    documents?: Array<{
-      documentId: string;
-      documentType: string;
-      fileName: string;
-      uploadDate: string;
-      verificationStatus: "Pending" | "Verified" | "Rejected";
-      rejectionReason?: string;
-    }>;
-    assessment?: {
-      creditScore?: number;
-      riskRating?: string;
-      debtToIncomeRatio?: number;
-      affordabilityAmount?: number;
-      recommendations?: string[];
-    };
-    approvalDetails?: {
-      approvedAmount?: number;
-      approvedTenure?: number;
-      interestRate?: number;
-      monthlyInstallment?: number;
-      conditions?: string[];
-      validUntil?: string;
-    };
-    rejectionDetails?: {
-      rejectionReason?: string;
-      rejectionCode?: string;
-      rejectionDate?: string;
-      appealProcess?: string;
-    };
+  executionStatus: 'Success' | 'Failure';
+  executionMessage: string;
+  instanceId: string;
+  outParams: {
+    ApplicationNumber: string;
   };
+  gridParams: any;
+  docParams: any;
 }
 
 // ============================================================================
@@ -400,20 +300,19 @@ export interface BusinessCustomerRequest {
 }
 
 // ============================================================================
-// UPLOAD DOCUMENT RESPONSE
+// UPLOAD DOCUMENT RESPONSE - UAT API Format
 // ============================================================================
 
+// UAT API Response Format for Document Upload
 export interface UploadDocumentResponse extends AltusBaseResponse {
-  outParams?: {
-    documentId: string;
-    fileName: string;
-    fileSize: number;
-    uploadDate: string;
-    documentType: string;
-    verificationStatus: "Pending" | "Verified" | "Rejected";
-    applicationId?: string;
-    customerId?: string;
+  executionStatus: 'Success' | 'Failure';
+  executionMessage: string;
+  instanceId: string;
+  outParams: {
+    LRDocumentDetailsId: string;
   };
+  gridParams: any;
+  docParams: any;
 }
 
 // ============================================================================

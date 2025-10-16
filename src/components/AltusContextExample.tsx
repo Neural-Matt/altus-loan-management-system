@@ -136,12 +136,10 @@ const AltusContextExample: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('document', file);
-    formData.append('documentType', 'PAYSLIP');
-    formData.append('applicationId', state.loanRequest?.applicationId || '');
+    const applicationNumber = state.loanRequest?.applicationId || '';
+    const documentType = 'PAYSLIP';
 
-    const result = await uploadLoanDocument(formData);
+    const result = await uploadLoanDocument(applicationNumber, documentType, file);
     
     if (result) {
       console.log('Document uploaded successfully:', result);
