@@ -33,9 +33,17 @@ export const TrackingPage: React.FC = () => {
   const [tracked, setTracked] = useState<TrackedRefEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load tracked items on mount
+  // Load tracked items on mount and check for URL parameter
   useEffect(() => {
     setTracked(getTracked());
+    
+    // Check for ref parameter in URL
+    const params = new URLSearchParams(window.location.search);
+    const refParam = params.get('ref');
+    if (refParam) {
+      setReference(refParam);
+      setTrackedLoanId(refParam);
+    }
   }, []);
 
   const handleSearch = () => {

@@ -264,6 +264,8 @@ export class AltusApiTester {
         firstName: 'John',
         lastName: 'Doe',
         nrc: '123456/78/9',
+        nrcIssueDate: '2015-01-15',
+        title: 'Mr',
         phoneNumber: '+260971234567',
         emailAddress: 'john.doe@test.com',
         dateOfBirth: '1990-01-01',
@@ -284,6 +286,12 @@ export class AltusApiTester {
           salary: 15000,
           employmentDate: '2020-01-01',
           employmentType: 'Permanent' as const
+        },
+        bankDetails: {
+          bankName: 'Indo Zambia Bank',
+          accountNumber: '1234567890',
+          accountType: 'Savings',
+          branchCode: 'Lusaka'
         },
         nextOfKin: {
           firstName: 'Jane',
@@ -439,12 +447,12 @@ export class AltusApiTester {
       const response = await getLoanStatus(testLoanId);
       const responseTime = Date.now() - startTime;
       
-      if (response && response.status) {
+      if (response && response.LoanStatus) {
         return {
           endpoint: '/API/LoanServices',
           method: 'POST',
           status: 'PASS',
-          message: `Loan status retrieved: ${response.status}`,
+          message: `Loan status retrieved: ${response.LoanStatus}`,
           responseTime,
           expectedFormat: true,
           actualResponse: response

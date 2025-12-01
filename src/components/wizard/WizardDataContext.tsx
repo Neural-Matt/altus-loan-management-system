@@ -7,6 +7,8 @@ export interface NextOfKinInfo {
   phone?: string;
   email?: string;
   address?: string;
+  city?: string;
+  province?: string;
   nrc?: string;
   nationality?: string;
   relationship?: string;
@@ -17,20 +19,52 @@ export interface ReferenceInfo {
   phone?: string;
   email?: string;
   address?: string;
+  nrc?: string;
+  relationship?: string;
 }
 
-export interface CustomerInput extends Partial<Customer> {
+export interface CustomerInput {
+  // Personal Information
+  firstName?: string;
+  lastName?: string;
   nrc?: string;
-  address?: string;
-  purpose?: string;
+  nrcIssueDate?: string;
+  dateOfBirth?: string;
+  title?: string;
+  phone?: string;
+  email?: string;
   gender?: string;
   nationality?: string;
   otherNationality?: string;
-  occupation?: string;
   maritalStatus?: string;
+  
+  // Address
+  address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  
+  // Employment
+  employerName?: string;
+  employerId?: string;
+  payrollNumber?: string;
+  occupation?: string;
+  salary?: number;
+  employmentDate?: string;
+  employmentType?: string;
+  
+  // Bank Details
+  bankName?: string;
+  bankBranch?: string;
+  accountNumber?: string;
+  accountType?: string;
+  
+  // Other
+  purpose?: string;
   accommodationType?: string; // rented | owned | other
   nextOfKin?: NextOfKinInfo;
   reference?: ReferenceInfo;
+  
   // API Integration fields
   customerId?: string; // Altus Customer ID returned from API
   apiCustomerData?: any; // Full API response data for reference
@@ -41,12 +75,13 @@ export interface LoanParams {
   tenureMonths?: number;
   productCode?: string;
   emiResult?: LoanCalculatorResult; // schedule rows now include opening/closing balances & installment
+  applicationNumber?: string; // Altus ApplicationNumber returned after successful loan submission
 }
 
 export interface UploadedDoc {
   id?: string; // returned by API when uploaded
   file?: File; // optional so drafts can persist metadata without binary
-  type: 'nrc-front' | 'nrc-back' | 'payslip' | 'payslip-1' | 'payslip-2' | 'payslip-3' | 'reference-letter' | 'work-id' | 'selfie' | 'bank-statement' | 'combined-payslips';
+  type: 'nrc-front' | 'nrc-back' | 'combined-nrc' | 'payslip' | 'payslip-1' | 'payslip-2' | 'payslip-3' | 'reference-letter' | 'work-id' | 'selfie' | 'bank-statement' | 'combined-payslips';
   previewUrl?: string;
   status?: 'pending' | 'uploading' | 'uploaded' | 'verifying' | 'verified' | 'error';
   errorMessage?: string;

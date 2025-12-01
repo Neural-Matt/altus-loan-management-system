@@ -91,10 +91,10 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
       }
       setError(null);
 
-      await fetchLoanStatus(loanId);
+      const statusData = await fetchLoanStatus(loanId);
       
-      // Get the status from the context state
-      const loanStatus = state.loanStatus?.status;
+      // Get the status from the API response
+      const loanStatus = statusData?.LoanStatus || state.loanStatus?.LoanStatus;
       if (loanStatus) {
         const previousStatus = currentStatus;
         setCurrentStatus(loanStatus);
@@ -105,6 +105,9 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
           onStatusChange?.(loanStatus);
           push(`Loan status updated to: ${loanStatus}`, 'info');
         }
+      } else {
+        // If no status returned, show error
+        setError('Loan not found or invalid Loan ID');
       }
     } catch (err) {
       console.error('Error fetching loan status:', err);
@@ -126,7 +129,13 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
 
   // Auto-refresh setup
   useEffect(() => {
-    if (!autoRefresh || !loanId || currentStatus === 'DISBURSED' || currentStatus === 'REJECTED') {
+    if (!autoRefresh || !loanId) {
+      return;
+    }
+
+    // Stop auto-refresh for closed/settled loans
+    const normalizedStatus = currentStatus?.toUpperCase() || '';
+    if (normalizedStatus.includes('CLOSED') || normalizedStatus.includes('SETTLED')) {
       return;
     }
 
@@ -159,14 +168,15 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
   };
 
   const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (status) {
-      case 'DOCUMENT_REVIEW': return 'info';
-      case 'PENDING': return 'warning';
-      case 'APPROVED': return 'success';
-      case 'DISBURSED': return 'success';
-      case 'REJECTED': return 'error';
-      default: return 'default';
-    }
+    const normalizedStatus = status?.toUpperCase() || '';
+    if (normalizedStatus.includes('ACTIVE')) return 'success';
+    if (normalizedStatus.includes('CLOSED') || normalizedStatus.includes('SETTLED')) return 'info';
+    if (normalizedStatus.includes('OVERDUE') || normalizedStatus.includes('DEFAULT')) return 'error';
+    if (normalizedStatus.includes('PENDING')) return 'warning';
+    if (normalizedStatus.includes('APPROVED')) return 'success';
+    if (normalizedStatus.includes('REJECTED') || normalizedStatus.includes('DECLINED')) return 'error';
+    if (normalizedStatus.includes('DISBURSED')) return 'success';
+    return 'default';
   };
 
   const formatLastUpdated = (date: Date): string => {
@@ -237,63 +247,44 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
         </Stack>
       </Stack>
 
-      {/* Status Timeline */}
-      <Box sx={{ mb: 2 }}>
-        <Stepper activeStep={getActiveStep()} orientation="vertical">
-          {statusSteps.map((step, index) => {
-            const stepStatus = getStepStatus(step.key);
-            const isRejected = currentStatus === 'REJECTED' && index > 0;
-            
-            return (
-              <Step key={step.key} completed={stepStatus === 'completed'}>
-                <StepLabel
-                  icon={
-                    isRejected ? (
-                      <RejectedIcon color="error" />
-                    ) : stepStatus === 'error' ? (
-                      <ErrorIcon color="error" />
-                    ) : (
-                      step.icon
-                    )
-                  }
-                  sx={{
-                    '& .MuiStepLabel-iconContainer': {
-                      color: stepStatus === 'completed' ? 'success.main' : 
-                             stepStatus === 'active' ? 'primary.main' : 
-                             stepStatus === 'error' || isRejected ? 'error.main' : 
-                             'text.disabled'
-                    }
-                  }}
-                >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {step.label}
-                  </Typography>
-                </StepLabel>
-                <StepContent>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {isRejected ? 'Application was not approved at the review stage' : step.description}
-                  </Typography>
-                  {stepStatus === 'active' && (
-                    <Chip 
-                      size="small" 
-                      label="In Progress" 
-                      color="primary" 
-                      variant="outlined"
-                    />
-                  )}
-                  {stepStatus === 'completed' && (
-                    <Chip 
-                      size="small" 
-                      label="Completed" 
-                      color="success" 
-                      variant="outlined"
-                    />
-                  )}
-                </StepContent>
-              </Step>
-            );
-          })}
-        </Stepper>
+      {/* Status Information */}
+      <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        {currentStatus ? (
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Current Loan Status
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {currentStatus}
+              </Typography>
+            </Box>
+            {state.loanStatus?.LoanDate && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Loan Date
+                </Typography>
+                <Typography variant="body1">
+                  {state.loanStatus.LoanDate}
+                </Typography>
+              </Box>
+            )}
+            {state.loanStatus?.LoanId && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Loan ID
+                </Typography>
+                <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                  {state.loanStatus.LoanId}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            Loading loan status...
+          </Typography>
+        )}
       </Box>
 
       <Divider sx={{ my: 2 }} />
@@ -303,36 +294,12 @@ export const LoanStatusTracker: React.FC<LoanStatusTrackerProps> = ({
         <Typography variant="caption" color="text.secondary">
           {lastUpdated ? `Last updated: ${formatLastUpdated(lastUpdated)}` : 'Loading...'}
         </Typography>
-        {autoRefresh && currentStatus !== 'DISBURSED' && currentStatus !== 'REJECTED' && (
+        {autoRefresh && currentStatus && !currentStatus.toUpperCase().includes('CLOSED') && !currentStatus.toUpperCase().includes('SETTLED') && (
           <Typography variant="caption" color="text.secondary">
             Auto-refresh: {refreshInterval}s
           </Typography>
         )}
       </Stack>
-
-      {/* Additional Status Info */}
-      {state.loanStatus && (
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-            Additional Details:
-          </Typography>
-          {state.loanStatus.statusDescription && (
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>Description:</strong> {state.loanStatus.statusDescription}
-            </Typography>
-          )}
-          {state.loanStatus.lastUpdated && (
-            <Typography variant="body2">
-              <strong>Last Updated:</strong> {new Date(state.loanStatus.lastUpdated).toLocaleString()}
-            </Typography>
-          )}
-          {state.loanStatus.nextAction && (
-            <Typography variant="body2">
-              <strong>Next Action:</strong> {state.loanStatus.nextAction}
-            </Typography>
-          )}
-        </Box>
-      )}
 
       {error && (
         <Alert severity="warning" sx={{ mt: 2 }}>

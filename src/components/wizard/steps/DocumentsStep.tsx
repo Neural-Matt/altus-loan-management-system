@@ -8,9 +8,11 @@ import { useAltus } from '../../../context/AltusContext';
 import { useUATWorkflow } from '../../../hooks/useUATWorkflow';
 import { preValidateFile, attemptOcr } from '../../../utils/docValidation';
 import { mergePayslips } from '../../../utils/payslipMerger';
+import { mergeNRCImages } from '../../../utils/nrcMerger';
 
 const docTypes: { label: string; type: UploadedDoc['type']; accept: string; optional?: boolean; helper?: string; }[] = [
-  { label: 'NRC', type: 'nrc-front', accept: '.jpg,.jpeg,.png,.pdf' },
+  { label: 'NRC (Front)', type: 'nrc-front', accept: '.jpg,.jpeg,.png,.pdf', helper: 'Clear photo of NRC front side' },
+  { label: 'NRC (Back)', type: 'nrc-back', accept: '.jpg,.jpeg,.png,.pdf', helper: 'Clear photo of NRC back side' },
   { label: 'Payslip (1 of 3)', type: 'payslip-1', accept: '.jpg,.jpeg,.png,.pdf', helper: 'Oldest of the last 3 payslips' },
   { label: 'Payslip (2 of 3)', type: 'payslip-2', accept: '.jpg,.jpeg,.png,.pdf', helper: 'Middle month payslip' },
   { label: 'Payslip (3 of 3)', type: 'payslip-3', accept: '.jpg,.jpeg,.png,.pdf', helper: 'Most recent payslip' },
@@ -33,6 +35,8 @@ export const DocumentsStep: React.FC = () => {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const documentsRef = useRef(documents);
   const activeIntervalsRef = useRef<number[]>([]);
+  const applicationNumberRef = useRef<string | null>(null); // Store ApplicationNumber to reuse for all documents
+  const pendingDocumentsRef = useRef<Map<string, { doc: UploadedDoc, base64: string, typeCode: string }>>(new Map()); // Store pending documents for retry
 
   // Keep ref synced with latest documents to avoid stale closure inside intervals
   useEffect(() => { documentsRef.current = documents; }, [documents]);
@@ -47,78 +51,121 @@ export const DocumentsStep: React.FC = () => {
   const uploadToAPI = useCallback(async (doc: UploadedDoc) => {
     if (!doc.file) return;
     
-    // Check if we're in development/mock mode first
-    const isMockMode = process.env.REACT_APP_MOCK_MODE === 'true';
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    if (isMockMode || isDevelopment) {
-      console.log('Debug: Development/Mock mode - skipping API upload, keeping document as verified');
-      // In development mode, don't change the document status
-      // Let it remain as "verified" so user can proceed to next step
-      push(`${doc.type.replace('-', ' ')} ready for submission! (Development Mode)`, 'info');
-      return;
-    }
-    
     try {
-      // Mark as uploading for production mode
+      // Mark as uploading
       addOrReplaceDocument({ ...doc, status: 'uploading', progress: 0 });
       
-      // Get customer ID from wizard data (preferred) or Altus context (fallback)
+      // Customer ID is now optional - we can proceed directly to loan application
       const customerId = customer.customerId || state.currentCustomer?.customerId;
-      console.log('Debug: Customer ID for upload:', customerId);
+      console.log('Debug: Customer ID for upload:', customerId || '(none - will use form data)');
       console.log('Debug: Wizard customer data:', customer);
       console.log('Debug: Altus context customer:', state.currentCustomer);
       
-      if (!customerId) {
-        throw new Error('Customer must be created first before uploading documents. Please complete the Customer Information step.');
-      }
-      
-      // Map document type to UAT document type codes
+      // Map document type to UAT document type codes per API V2 docs
       const documentTypeMap: Record<UploadedDoc['type'], string> = {
-        'nrc-front': '6',         // NRC ID (Client)
-        'nrc-back': '6',          // NRC ID (Client)
-        'payslip': '18',          // Payslip (Last 3 months)
-        'payslip-1': '18',        // Payslip (Last 3 months) 
-        'payslip-2': '18',        // Payslip (Last 3 months)
-        'payslip-3': '18',        // Payslip (Last 3 months)
-        'reference-letter': '29', // Employment Contract (closest match)
-        'work-id': '29',          // Employment Contract (closest match) 
-        'selfie': '6',            // Use NRC code for selfie
-        'bank-statement': '18',   // Use payslip code for bank statement
-        'combined-payslips': '18' // Payslip (Last 3 months)
+        'nrc-front': 'SKIP',      // Will be merged with nrc-back
+        'nrc-back': 'SKIP',       // Will be merged with nrc-front
+        'combined-nrc': '6',      // NRC ID (Client) - merged front+back
+        'payslip': 'SKIP',        // Individual payslips not uploaded
+        'payslip-1': 'SKIP',      // Will be merged into combined-payslips
+        'payslip-2': 'SKIP',      // Will be merged into combined-payslips
+        'payslip-3': 'SKIP',      // Will be merged into combined-payslips
+        'combined-payslips': '18', // Payslip (Last 3 months) - merged 3 payslips
+        'reference-letter': '29',  // Employment Contract
+        'work-id': '29',           // Employment Contract
+        'selfie': '17',            // Passport (closest match for photo ID)
+        'bank-statement': '30'     // Order Copies (supporting financial docs)
       };
       
-      const documentTypeCode = documentTypeMap[doc.type] || '6'; // Default to NRC
+      const documentTypeCode = documentTypeMap[doc.type] || '6';
       
-      // Step 1: Submit loan application to get ApplicationNumber (UAT requirement)
-      console.log('🚀 Step 1: Submitting loan application to get ApplicationNumber...');
-      const applicationNumber = await submitLoanApplication();
-      console.log('✅ Got ApplicationNumber:', applicationNumber);
+      // Skip upload for individual NRC and payslip documents (will be uploaded as merged)
+      if (documentTypeCode === 'SKIP') {
+        console.log(`⏭️ Skipping individual upload for ${doc.type} - will be uploaded as merged document`);
+        addOrReplaceDocument({ ...doc, status: 'verified', progress: 100 });
+        return;
+      }
       
-      // Step 2: Upload document using ApplicationNumber
-      console.log('📤 Step 2: Uploading document with ApplicationNumber...');
-      const response = await uploadDocument(applicationNumber, documentTypeCode, doc.file);
+      // Step 1: Get or create ApplicationNumber
+      // IMPORTANT: Backend requires MANUAL APPROVAL before ApplicationNumber is active
+      // Documents are stored locally and will be uploaded after approval
+      let applicationNumber = applicationNumberRef.current;
       
-      // Update document with API response
-      addOrReplaceDocument({ 
-        ...doc, 
-        id: response,
-        status: 'uploaded', 
-        progress: 100 
-      });
+      if (!applicationNumber) {
+        console.log('🚀 Step 1: Submitting loan application for approval...');
+        applicationNumber = await submitLoanApplication();
+        applicationNumberRef.current = applicationNumber; // Store for reuse
+        console.log('✅ Got ApplicationNumber:', applicationNumber);
+        console.log('⏳ Waiting for backend approval before document upload (storing locally)...');
+      } else {
+        console.log('♻️ Reusing existing ApplicationNumber:', applicationNumber);
+      }
       
-      push(`${doc.type.replace('-', ' ')} uploaded successfully!`, 'success');
+      // Step 2: Attempt document upload (will be stored locally if pending approval)
+      console.log('📤 Step 2: Attempting document upload...');
+      
+      try {
+        const response = await uploadDocument(applicationNumber, documentTypeCode, doc.file);
+        
+        // Upload successful - remove from pending queue if it was there
+        pendingDocumentsRef.current.delete(doc.type);
+        
+        // Update document with API response
+        addOrReplaceDocument({ 
+          ...doc, 
+          id: response,
+          status: 'uploaded', 
+          progress: 100 
+        });
+        
+        push(`${doc.type.replace('-', ' ')} uploaded successfully!`, 'success');
+      } catch (uploadError: any) {
+        // Check if error is "Application Number does not exists" - this means pending approval
+        const isPendingApproval = uploadError?.message?.includes('Application Number does not exists') || 
+                                   uploadError?.details?.executionMessage?.includes('Application Number does not exists');
+        
+        if (isPendingApproval) {
+          // This is expected - loan is pending approval
+          // Store the document data for retry after approval
+          console.log('ℹ️ Loan application pending approval. Storing document for retry:', doc.type);
+          
+          // Convert file to base64 to store it
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result as string;
+            pendingDocumentsRef.current.set(doc.type, { 
+              doc, 
+              base64, 
+              typeCode: documentTypeCode 
+            });
+            
+            // Update pending count immediately
+            const newCount = pendingDocumentsRef.current.size;
+            setPendingCount(newCount);
+            console.log(`📦 Stored ${doc.type} locally. Total pending: ${newCount}`);
+          };
+          reader.readAsDataURL(doc.file);
+          
+          addOrReplaceDocument({ 
+            ...doc, 
+            status: 'uploaded', // Mark as uploaded (pending in queue)
+            progress: 100,
+            id: `pending-${Date.now()}` // Temporary ID
+          });
+          
+          push(`${doc.type.replace('-', ' ')} ready. Will upload after loan approval.`, 'info');
+        } else {
+          // Actual upload error - re-throw to outer catch
+          throw uploadError;
+        }
+      }
     } catch (error) {
       console.error('Error uploading document:', error);
       
       // Provide helpful error messages
       let errorMessage = 'Upload failed';
       if (error instanceof Error) {
-        if (error.message.includes('Customer must be created first')) {
-          errorMessage = 'Please complete the Customer Information step first before uploading documents.';
-        } else {
-          errorMessage = error.message;
-        }
+        errorMessage = error.message;
       }
       
       addOrReplaceDocument({ 
@@ -200,8 +247,30 @@ export const DocumentsStep: React.FC = () => {
         }
         
         let notes = 'Basic checks passed';
-        if (ocr?.detectedNrc && customer?.nrc && type === 'nrc-front') {
-          notes += ocr.detectedNrc.toLowerCase() === String(customer.nrc).toLowerCase() ? ' | NRC match confirmed' : ' | NRC mismatch';
+        if (ocr?.detectedNrc && type === 'nrc-front') {
+          // Get NRC from customer data
+          const customerNrc = customer?.nrc;
+          
+          if (customerNrc && customerNrc.trim().length > 0) {
+            // Normalize both NRCs for comparison - remove slashes, spaces, hyphens
+            const normalizeNrc = (nrc: string) => nrc.replace(/[/\s\-]/g, '').toLowerCase().trim();
+            const detectedNormalized = normalizeNrc(ocr.detectedNrc);
+            const customerNormalized = normalizeNrc(String(customerNrc));
+            
+            const isMatch = detectedNormalized === customerNormalized;
+            notes += isMatch ? ' | NRC match confirmed' : ` | NRC mismatch (detected: ${ocr.detectedNrc}, expected: ${customerNrc})`;
+            
+            console.log('NRC Validation:', {
+              detected: ocr.detectedNrc,
+              detectedNormalized,
+              customer: customerNrc,
+              customerNormalized,
+              match: isMatch
+            });
+          } else {
+            console.log('NRC Validation: Customer NRC not available for comparison, detected:', ocr.detectedNrc);
+            notes += ` | NRC detected: ${ocr.detectedNrc} (no customer NRC to compare)`;
+          }
         }
         
         const verifiedDoc = { 
@@ -267,6 +336,46 @@ export const DocumentsStep: React.FC = () => {
     }
   }, [documents, customer, addOrReplaceDocument, push, uploadToAPI]);
   
+  // NRC merging function
+  const checkAndMergeNRC = useCallback(async () => {
+    const nrcFront = documents.find(d => d.type === 'nrc-front' && d.status === 'verified');
+    const nrcBack = documents.find(d => d.type === 'nrc-back' && d.status === 'verified');
+    
+    // Check if both NRC front and back are verified and not already merged
+    if (nrcFront && nrcBack && 
+        nrcFront.file && nrcBack.file &&
+        !documents.find(d => d.type === 'combined-nrc')) {
+      
+      try {
+        push('Merging NRC front and back into single document...', 'info');
+        
+        const clientNRC = customer?.nrc || 'Unknown_NRC';
+        const mergedFile = await mergeNRCImages(nrcFront.file, nrcBack.file, String(clientNRC));
+        
+        // Add the merged document
+        const mergedDoc = {
+          file: mergedFile,
+          type: 'combined-nrc' as UploadedDoc['type'],
+          status: 'verified' as const,
+          mimeType: 'application/pdf',
+          sizeBytes: mergedFile.size,
+          verificationNotes: 'Combined NRC front and back',
+          progress: 100
+        };
+        
+        addOrReplaceDocument(mergedDoc);
+        
+        push('NRC documents successfully merged', 'success');
+        
+        // Upload merged document to API
+        setTimeout(() => uploadToAPI(mergedDoc), 500);
+      } catch (error) {
+        console.error('Failed to merge NRC documents:', error);
+        push('Failed to merge NRC documents - individual files preserved', 'error');
+      }
+    }
+  }, [documents, customer, addOrReplaceDocument, push, uploadToAPI]);
+  
   // Check for payslip merge when documents change
   useEffect(() => {
     const payslipTypes = ['payslip-1', 'payslip-2', 'payslip-3'];
@@ -279,6 +388,17 @@ export const DocumentsStep: React.FC = () => {
       checkAndMergePayslips();
     }
   }, [documents, checkAndMergePayslips]);
+  
+  // Check for NRC merge when documents change
+  useEffect(() => {
+    const nrcFront = documents.find(d => d.type === 'nrc-front' && d.status === 'verified');
+    const nrcBack = documents.find(d => d.type === 'nrc-back' && d.status === 'verified');
+    
+    // If both NRC documents are verified and no merged document exists, trigger merge
+    if (nrcFront && nrcBack && !documents.find(d => d.type === 'combined-nrc')) {
+      checkAndMergeNRC();
+    }
+  }, [documents, checkAndMergeNRC]);
   
   const docsByType = useCallback((t: UploadedDoc['type']) => documents.find(d => d.type === t), [documents]);
   const openPicker = (type: UploadedDoc['type']) => {
@@ -297,14 +417,79 @@ export const DocumentsStep: React.FC = () => {
     const required: UploadedDoc['type'][] = ['nrc-front','payslip-1','payslip-2','payslip-3'];
     const missing = required.filter(r => !docsByType(r));
     if (missing.length) { push('Please upload all required documents: ' + missing.join(', '), 'error'); return false; }
-  const payslipTypes = ['payslip-1','payslip-2','payslip-3'] as const;
-  const payslipOk = payslipTypes.every(p => docsByType(p)?.status === 'verified');
-    if (!payslipOk) { push('Payslips are still verifying – wait for completion.', 'warning'); return false; }
-  const nrcDoc = docsByType('nrc-front');
-  const mism = nrcDoc?.verificationNotes?.includes('mismatch');
+    
+    // Check if payslips are still verifying (informational only - don't block)
+    const payslipTypes = ['payslip-1','payslip-2','payslip-3'] as const;
+    const payslipsVerifying = payslipTypes.some(p => docsByType(p)?.status === 'verifying');
+    if (payslipsVerifying) { 
+      push('✓ Payslips are being verified. You can proceed to Review - verification will continue in background.', 'info'); 
+    }
+    
+    // Check for NRC mismatch (warning only - don't block)
+    const nrcDoc = docsByType('nrc-front');
+    const mism = nrcDoc?.verificationNotes?.includes('mismatch');
     if (mism) push('Warning: NRC mismatch detected – please verify ID number.', 'warning');
+    
+    // Inform user about pending approval if applicable
+    if (!applicationNumberRef.current) {
+      push('✓ Documents saved. You can proceed to Review while waiting for loan approval.', 'info');
+    }
+    
     return true;
   };
+
+  // Retry uploading pending documents
+  const retryPendingUploads = useCallback(async () => {
+    if (!applicationNumberRef.current || pendingDocumentsRef.current.size === 0) {
+      push('No pending documents to retry', 'info');
+      return;
+    }
+
+    console.log(`🔄 Retrying ${pendingDocumentsRef.current.size} pending document(s)...`);
+    push(`Retrying ${pendingDocumentsRef.current.size} pending document(s)...`, 'info');
+
+    const pendingArray = Array.from(pendingDocumentsRef.current.entries());
+    
+    for (const [docType, { doc, typeCode }] of pendingArray) {
+      if (!doc.file) continue;
+      
+      try {
+        console.log(`🔄 Retrying upload for: ${docType}`);
+        addOrReplaceDocument({ ...doc, status: 'uploading', progress: 50 });
+        
+        const response = await uploadDocument(applicationNumberRef.current, typeCode, doc.file);
+        
+        // Success - remove from pending
+        pendingDocumentsRef.current.delete(docType);
+        
+        addOrReplaceDocument({ 
+          ...doc, 
+          id: response,
+          status: 'uploaded', 
+          progress: 100 
+        });
+        
+        push(`${docType.replace('-', ' ')} uploaded successfully!`, 'success');
+      } catch (error: any) {
+        console.error(`Failed to retry ${docType}:`, error);
+        // Keep in pending queue for next retry
+        addOrReplaceDocument({ 
+          ...doc, 
+          status: 'uploaded', // Keep as "uploaded" (pending)
+          progress: 100 
+        });
+      }
+    }
+
+    if (pendingDocumentsRef.current.size === 0) {
+      push('All documents uploaded successfully!', 'success');
+      setPendingCount(0);
+    } else {
+      const remaining = pendingDocumentsRef.current.size;
+      setPendingCount(remaining);
+      push(`${remaining} document(s) still pending approval`, 'warning');
+    }
+  }, [uploadDocument, addOrReplaceDocument, push]);
 
   // Derived progress & group metrics
   const requiredArr: UploadedDoc['type'][] = ['nrc-front','payslip-1','payslip-2','payslip-3'];
@@ -313,17 +498,101 @@ export const DocumentsStep: React.FC = () => {
   const payslipsVerified = payslipDocs.filter(p => p.doc?.status === 'verified').length;
   const selfieDoc = docsByType('selfie');
   const overallPct = useMemo(() => Math.round((requiredVerified / requiredArr.length) * 100), [requiredVerified, requiredArr.length]);
+  
+  // Track pending documents count (refresh when documents change)
+  const [pendingCount, setPendingCount] = React.useState(0);
+  React.useEffect(() => {
+    const count = pendingDocumentsRef.current.size;
+    setPendingCount(count);
+    console.log(`📊 Pending documents count updated: ${count}`);
+  }, [documents]); // Re-check when documents array changes
+  
+  // Also update count after uploads complete
+  const updatePendingCount = useCallback(() => {
+    const count = pendingDocumentsRef.current.size;
+    setPendingCount(count);
+    console.log(`📊 Pending documents count: ${count}`);
+  }, []);
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>Supporting Documents</Typography>
       
+      {/* Pending Documents Warning Banner */}
+      {pendingCount > 0 && (
+        <Alert 
+          severity="warning" 
+          sx={{ 
+            mb: 2,
+            border: '2px solid',
+            borderColor: 'warning.main',
+            boxShadow: '0 4px 12px rgba(255, 152, 0, 0.2)'
+          }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={retryPendingUploads}
+              sx={{ 
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+                bgcolor: 'warning.dark',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'warning.main'
+                }
+              }}
+            >
+              🔄 Retry Upload ({pendingCount})
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+            ⏳ {pendingCount} Document(s) Awaiting Backend Approval
+          </Typography>
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+            <strong>Application Number: {applicationNumberRef.current}</strong>
+            <br />
+            Your loan application requires manual approval from the Altus system administrator before documents can be uploaded. 
+            All documents are saved securely in your browser.
+            <br />
+            <strong>What happens next:</strong>
+            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+              <li>Administrator reviews your loan application ({applicationNumberRef.current})</li>
+              <li>Once approved, click "Retry Upload" to upload all pending documents</li>
+              <li>You can close this page and return later - your documents are saved locally</li>
+            </ul>
+            <em>Approval typically takes 5-15 minutes during business hours.</em>
+          </Typography>
+        </Alert>
+      )}
+      
+      {/* Loan Approval Status Alert */}
+      {applicationNumberRef.current && pendingCount === 0 && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            📋 Loan Application: {applicationNumberRef.current}
+          </Typography>
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+            <strong>Status:</strong> Pending backend approval by Altus administrator.
+            <br />
+            Continue uploading documents - they will be stored locally and uploaded automatically after approval.
+          </Typography>
+        </Alert>
+      )}
+      
       {/* Customer Notice */}
-      {!state.currentCustomer?.customerId && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            <strong>Note:</strong> In development mode, you can upload documents without completing the customer step. 
-            In production, customer information must be completed first.
+      {!state.currentCustomer?.customerId && !customer?.customerId && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            ⚡ Fast Track Mode Active
+          </Typography>
+          <Typography variant="caption" sx={{ display: 'block' }}>
+            Skip creating a customer account - just fill the form in Step 1 and Step 2, then upload documents here. 
+            Your loan application will be created automatically using your form data.
           </Typography>
         </Alert>
       )}
@@ -406,6 +675,55 @@ export const DocumentsStep: React.FC = () => {
             ))}
           </Stack>
         </Box>
+        
+        {/* Combined NRC Display */}
+        {documents.find(d => d.type === 'combined-nrc') && (
+          <Box sx={{ p:2, border:'2px solid', borderColor:'primary.light', borderRadius:2, background:'linear-gradient(90deg,#0d47a1,#1976d2)', color:'#fff', mb:2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight:600, mb:1 }}>🪪 Combined NRC Document</Typography>
+            {(() => {
+              const combinedDoc = documents.find(d => d.type === 'combined-nrc');
+              return combinedDoc ? (
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Box sx={{ flex:1 }}>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap:'wrap' }}>
+                      <Chip 
+                        size="small" 
+                        color="primary" 
+                        label={combinedDoc.file?.name || 'NRC_Combined.pdf'} 
+                        sx={{ background:'rgba(255,255,255,0.9)', color:'#0d47a1' }}
+                      />
+                      <Chip 
+                        size="small" 
+                        variant="outlined" 
+                        label="MERGED" 
+                        sx={{ borderColor:'rgba(255,255,255,0.5)', color:'#fff' }}
+                      />
+                      {combinedDoc.sizeBytes && (
+                        <Chip 
+                          size="small" 
+                          variant="outlined" 
+                          label={`${Math.round(combinedDoc.sizeBytes/1024)} KB`}
+                          sx={{ borderColor:'rgba(255,255,255,0.5)', color:'#fff' }}
+                        />
+                      )}
+                    </Stack>
+                    <Typography variant="caption" sx={{ display:'block', mt:0.5, opacity:0.9 }}>
+                      NRC front and back have been automatically combined into a single PDF document
+                    </Typography>
+                  </Box>
+                  <IconButton 
+                    size="small" 
+                    sx={{ color:'#fff' }} 
+                    onClick={() => removeDocument('combined-nrc')} 
+                    aria-label="Remove combined NRC"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              ) : null;
+            })()}
+          </Box>
+        )}
         
         {/* Combined Payslips Display */}
         {documents.find(d => d.type === 'combined-payslips') && (

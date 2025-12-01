@@ -27,6 +27,7 @@ export interface CustomerData {
   emailAddress?: string;
   nationality: string;
   otherNationality?: string;
+  gender?: string;
   status?: CustomerStatus;
   registrationDate?: string;
   lastUpdated?: string;
@@ -75,6 +76,7 @@ export interface LoanData {
 
 export interface LoanRequestData {
   applicationId?: string;
+  applicationNumber?: string;
   referenceNumber?: string;
   customerId: string;
   productCode: string;
@@ -548,12 +550,17 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       const result = await altusApi.createRetailCustomer(customerData);
       console.log('Debug: Customer creation result:', result);
+      console.log('Debug: Result executionStatus:', result?.executionStatus);
+      console.log('Debug: Result outParams:', result?.outParams);
       
-      if (result && result.executionStatus === 'Success' && result.outParams?.CustomerID) {
-        // UAT API returns CustomerID, so we need to use the original request data
-        // and combine it with the returned customer ID
+      // UAT API returns either CustomerID or RequestId depending on KYC process
+      const customerId = result?.outParams?.CustomerID || result?.outParams?.RequestId;
+      
+      if (result && result.executionStatus === 'Success' && customerId) {
+        // UAT API returns CustomerID or RequestId, so we need to use the original request data
+        // and combine it with the returned ID
         const newCustomer: CustomerData = {
-          customerId: result.outParams.CustomerID,
+          customerId: customerId,
           firstName: customerData.firstName,
           lastName: customerData.lastName || '',
           nrc: customerData.nrc,
@@ -575,10 +582,16 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         dispatch({ type: 'SET_CUSTOMER', payload: newCustomer });
         dispatch({ type: 'SET_SUCCESS_FLAG', payload: { flag: 'customerCreated', value: true } });
-        console.log('✅ Customer stored in context:', newCustomer);
+        console.log('✅ Customer stored in context with ID:', customerId);
         return newCustomer;
       }
 
+      console.warn('⚠ Customer creation returned no data or failed:', {
+        hasResult: !!result,
+        executionStatus: result?.executionStatus,
+        hasCustomerId: !!customerId,
+        fullResult: result
+      });
       return null;
     } catch (error) {
       const apiError = createApiError(error, 'Failed to create retail customer');
@@ -791,6 +804,7 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const status = await altusApi.getLoanStatus(loanId);
       
       if (status) {
+        // Store the actual API response as-is
         dispatch({ type: 'SET_LOAN_STATUS', payload: status });
         return status;
       }
@@ -843,17 +857,37 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setLoading('submittingLoanRequest', true);
       setError('loanRequest', null);
 
-      const result = await altusApi.submitLoanRequest(requestData);
+      // Map the request data to UAT API format - exact field names
+      const uatFormattedData = {
+        typeOfCustomer: "Existing", // Since we created customer first
+        customerId: requestData.customerId,
+        identityNo: requestData.identityNo || requestData.nrc || state.currentCustomer?.nrc || "",
+        contactNo: requestData.contactNo || requestData.phoneNumber || state.currentCustomer?.phoneNumber || "",
+        emailId: requestData.emailId || requestData.emailAddress || state.currentCustomer?.emailAddress || "",
+        employeeNumber: requestData.employeeNumber || "",
+        designation: requestData.designation || "",
+        employmentType: requestData.employmentType || "1", // 1=Permanent, 2=Contract
+        tenure: requestData.tenure || requestData.tenureMonths || 12,
+        gender: requestData.gender || state.currentCustomer?.gender || "Male",
+        loanAmount: requestData.loanAmount || requestData.requestedAmount || requestData.amount || 0,
+        grossIncome: requestData.grossIncome || requestData.grossSalary || 0,
+        netIncome: requestData.netIncome || requestData.netSalary || 0,
+        deductions: requestData.deductions || 0
+      };
+
+      console.log('Debug: Submitting loan request with UAT-formatted data:', uatFormattedData);
+      const result = await altusApi.submitLoanRequest(uatFormattedData);
       
       if (result && result.executionStatus === 'Success' && result.outParams?.ApplicationNumber) {
         // UAT format uses ApplicationNumber in outParams
         const loanRequestData: LoanRequestData = {
           applicationId: result.outParams.ApplicationNumber,
+          applicationNumber: result.outParams.ApplicationNumber,
           referenceNumber: result.outParams.ApplicationNumber, // Use ApplicationNumber as reference
           customerId: requestData.customerId,
           productCode: requestData.productCode || 'PBL001',
-          requestedAmount: requestData.amount,
-          tenureMonths: requestData.tenureMonths,
+          requestedAmount: requestData.amount || requestData.loanAmount,
+          tenureMonths: requestData.tenureMonths || requestData.tenure,
           currency: 'ZMW',
           status: 'Submitted' as LoanStatus,
           applicationDate: new Date().toISOString(),
@@ -873,20 +907,23 @@ export const AltusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         dispatch({ type: 'SET_LOAN_REQUEST', payload: loanRequestData });
         dispatch({ type: 'SET_SUCCESS_FLAG', payload: { flag: 'loanRequestSubmitted', value: true } });
         setLastFetched('loanRequest');
+        
+        console.log('Debug: Loan request successful, ApplicationNumber:', result.outParams.ApplicationNumber);
         return loanRequestData;
       } else {
-        throw new Error(`Loan request failed: ${result?.executionMessage || 'Unknown error'}`);
+        const errorMsg = result?.executionMessage || 'Unknown error';
+        console.error('Debug: Loan request failed:', errorMsg);
+        throw new Error(`Loan request failed: ${errorMsg}`);
       }
-
-      return null;
     } catch (error) {
+      console.error('Debug: Loan request error:', error);
       const apiError = createApiError(error, 'Failed to submit loan request');
       setError('loanRequest', apiError);
       return null;
     } finally {
       setLoading('submittingLoanRequest', false);
     }
-  }, [createApiError, setLoading, setError, setLastFetched]);
+  }, [createApiError, setLoading, setError, setLastFetched, state.currentCustomer]);
 
   const uploadLoanDocument = useCallback(async (applicationNumber: string, documentType: string, file: File): Promise<UploadDocumentResponse['outParams'] | null> => {
     try {

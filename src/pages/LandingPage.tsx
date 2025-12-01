@@ -183,7 +183,8 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       <Box sx={{ textAlign:'center' }}>
-        <Button component={Link} to="/track" variant="outlined" size="large">Track Existing Application</Button>
+        <Button component={Link} to="/track" variant="outlined" size="large" sx={{ mr: 2 }}>Track Existing Application</Button>
+        <Button component={Link} to="/test-apis" variant="outlined" size="large" color="secondary">🧪 Test APIs</Button>
       </Box>
     </AppLayout>
   );

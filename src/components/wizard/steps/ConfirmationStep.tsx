@@ -1,37 +1,18 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, CircularProgress, Stack } from '@mui/material';
+import React from 'react';
+import { Box, Typography, Button, Stack } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useWizardData } from '../WizardDataContext';
-import { isMockMode, mockSubmitApplication } from '../../../api/mockApi';
-
-// Placeholder submission simulation; will be replaced with real API call.
-const fakeSubmit = (): Promise<{ referenceId: string; status: string; }> =>
-  new Promise(resolve => setTimeout(
-    () => resolve({ referenceId: 'REF' + Math.floor(Math.random() * 1e6), status: 'PENDING_REVIEW' }),
-    1200
-  ));
 
 export const ConfirmationStep: React.FC = () => {
-  const { customer, loan, documents, resetAll } = useWizardData();
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ referenceId: string; status: string;} | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { loan, resetAll } = useWizardData();
 
-  const handleSubmit = async () => {
-    setSubmitting(true); setError(null);
-    try {
-      const applicationData = {
-        customer,
-        loan,
-        documents: documents.map(d => ({ type: d.type, status: d.status })),
-        submittedAt: new Date().toISOString()
-      };
-      const res = isMockMode() ? await mockSubmitApplication(applicationData) : await fakeSubmit();
-      setResult({ referenceId: res.referenceId, status: res.status });
-    } catch (e: any) {
-      setError(e.message || 'Submission failed');
-    } finally {
-      setSubmitting(false);
-    }
+  // Check if we have an applicationNumber from successful submission
+  const hasApplicationNumber = !!loan.applicationNumber;
+
+  const handleTrackLoan = () => {
+    // Navigate to tracking page with applicationNumber in the URL
+    navigate(`/track?ref=${loan.applicationNumber}`);
   };
 
   (window as any).__confirmationStepValidate = async () => true;
@@ -39,28 +20,33 @@ export const ConfirmationStep: React.FC = () => {
   return (
     <Box>
       <Typography variant="h6" gutterBottom>Confirmation</Typography>
-      {result ? (
-        <Box sx={{ p:2, bgcolor: 'background.paper', borderRadius:2, boxShadow:1 }}>
-          <Typography variant="subtitle1" gutterBottom>Application Submitted</Typography>
-          <Typography variant="body2">Reference ID: <strong>{result.referenceId}</strong></Typography>
-          <Typography variant="body2" sx={{ mb:2 }}>Initial Status: <strong>{result.status}</strong></Typography>
-          <Typography variant="caption" sx={{ display:'block', mb:2 }}>Use the tracking page with this reference ID to check updates.</Typography>
+      {hasApplicationNumber ? (
+        <Box sx={{ p:2, bgcolor: 'success.light', borderRadius:2, boxShadow:2 }}>
+          <Typography variant="h6" gutterBottom sx={{ color: 'success.dark' }}>✅ Application Submitted Successfully</Typography>
+          <Typography variant="body1" sx={{ mb: 1, fontWeight: 600 }}>
+            Application Number: <strong style={{ fontSize: '1.2em', color: '#2e7d32' }}>{loan.applicationNumber}</strong>
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Your loan application has been submitted and is pending review. Use the tracking page with this Application Number to check updates on your loan status.
+          </Typography>
           <Stack direction="row" spacing={2}>
+            <Button variant="contained" color="primary" onClick={handleTrackLoan}>Track Application Status</Button>
             <Button variant="outlined" onClick={() => resetAll()}>Start New Application</Button>
           </Stack>
         </Box>
       ) : (
-        <Box>
-          <Typography variant="body2" sx={{ mb:2 }}>Click submit to send your application. A reference will be generated.</Typography>
-          <Stack direction="row" spacing={2}>
-            <Button variant="contained" disabled={submitting} onClick={handleSubmit}>
-              {submitting ? <><CircularProgress size={18} sx={{ mr:1 }} /> Submitting...</> : 'Submit Application'}
-            </Button>
-          </Stack>
-          {error && <Typography color="error" sx={{ mt:2 }}>{error}</Typography>}
-          <Typography variant="caption" sx={{ display:'block', mt:3, color:'text.secondary' }}>
-            {isMockMode() ? 'Using mock submission mode (no network call).' : 'TODO: Replace with real API integration and optimistic status polling.'}
+        <Box sx={{ p:2, bgcolor: 'info.light', borderRadius:2, boxShadow:1 }}>
+          <Typography variant="h6" gutterBottom sx={{ color: 'info.dark' }}>📋 Final Review</Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Your application has been completed. The loan request has been submitted during the document upload step, and you should have received an Application Number.
           </Typography>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            If you haven't seen the Application Number yet, please go back to the Documents step to complete the submission process.
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" onClick={() => navigate('/track')}>Go to Tracking Page</Button>
+            <Button variant="outlined" onClick={() => resetAll()}>Start New Application</Button>
+          </Stack>
         </Box>
       )}
     </Box>

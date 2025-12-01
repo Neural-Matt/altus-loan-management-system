@@ -33,23 +33,20 @@ export interface LoanBalanceResponse extends AltusBaseResponse {
 }
 
 // ============================================================================
-// LOAN STATUS RESPONSE
+// LOAN STATUS RESPONSE - UAT API Format
 // ============================================================================
 
 export interface LoanStatusResponse extends AltusBaseResponse {
-  outParams?: {
-    loanId: string;
-    status: string;
-    statusDescription: string;
-    applicationDate: string;
-    approvalDate?: string;
-    disbursementDate?: string;
-    maturityDate?: string;
-    lastUpdated: string;
-    currentStage: string;
-    nextAction?: string;
-    rejectionReason?: string;
+  executionStatus: 'Success' | 'Failure';
+  executionMessage: string;
+  instanceId: string;
+  outParams: {
+    LoanId: string;
+    LoanStatus: string;
+    LoanDate: string;
   };
+  gridParams: any;
+  docParams: any;
 }
 
 // ============================================================================
@@ -121,9 +118,11 @@ export interface RetailCustomerRequest {
   firstName: string;
   lastName: string;
   nrc: string;
+  nrcIssueDate: string;
   phoneNumber: string;
-  emailAddress?: string;
+  emailAddress: string;
   dateOfBirth: string;
+  title: string;
   gender: "Male" | "Female";
   nationality: string;
   otherNationality?: string;
@@ -135,6 +134,7 @@ export interface RetailCustomerRequest {
     postalCode?: string;
     country: string;
   };
+  preferredBranch?: string;
   employment: {
     employerId: string;
     employerName: string;
@@ -152,11 +152,11 @@ export interface RetailCustomerRequest {
     phoneNumber: string;
     address?: string;
   };
-  bankDetails?: {
+  bankDetails: {
     bankName: string;
     accountNumber: string;
     accountType: string;
-    branchCode?: string;
+    branchCode: string;
   };
   documents?: Array<{
     documentType: string;
@@ -176,7 +176,8 @@ export interface CustomerDetailsResponse extends AltusBaseResponse {
   executionMessage: string;
   instanceId: string;
   outParams: {
-    CustomerID: string;
+    CustomerID?: string;  // Regular customer creation
+    RequestId?: string;   // KYC Amendment process
   };
   gridParams: any;
   docParams: any;
@@ -348,6 +349,19 @@ export type DocumentVerificationStatus = "Pending" | "Verified" | "Rejected";
 export type InterestRateType = "Fixed" | "Variable";
 
 export type Currency = "ZMW" | "USD" | "EUR" | "GBP";
+
+// ============================================================================
+// CUSTOMER REQUEST STATUS RESPONSE
+// ============================================================================
+
+export interface CustomerRequestStatusResponse extends AltusBaseResponse {
+  outParams?: {
+    RequestId: string;
+    RequestStatus: string; // "0" = Pending, "1" = Approved/Rejected
+    ResponseCode?: string;
+    ResponseMessage?: string;
+  };
+}
 
 // ============================================================================
 // API REQUEST WRAPPERS

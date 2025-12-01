@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type {
   LoanBalanceResponse,
   LoanStatusResponse,
@@ -8,42 +8,43 @@ import type {
   CustomerDetailsResponse,
   LoanProductResponse,
   LoanRequestResponse,
-  UploadDocumentResponse,
-  AltusApiRequest,
-  AltusBaseResponse
+  UploadDocumentResponse
 } from '../types/altus';
+import { CURRENT_API_CONFIG } from '../config/apiConfig';
 
-// API Configuration
-const ALTUS_BASE_URL = 'http://3.6.174.212:5010/';
+// API Configuration - Uses environment-aware config (proxy in prod, direct in dev)
+const ALTUS_BASE_URLS = {
+  LOAN_SERVICES: CURRENT_API_CONFIG.LOAN_SERVICES_BASE,
+  CUSTOMER_SERVICES: CURRENT_API_CONFIG.CUSTOMER_SERVICES_BASE,
+  PRODUCT_SERVICES: CURRENT_API_CONFIG.PRODUCT_SERVICES_BASE,
+  DOCUMENT_SERVICES: CURRENT_API_CONFIG.DOCUMENT_SERVICES_BASE,
+  LOAN_LIST_SERVICES: CURRENT_API_CONFIG.EMI_CALCULATOR_BASE,
+};
 
 // Request timeout in milliseconds (30 seconds)
 const REQUEST_TIMEOUT = 30000;
 
-// Get Bearer token from environment or localStorage with fallback
-const getInitialBearerToken = (): string | null => {
-  // Priority 1: Environment variable (recommended for production)
-  const envToken = process.env.REACT_APP_ALTUS_BEARER_TOKEN;
-  if (envToken && envToken.length > 50) {
-    console.log('[Altus API] Using Bearer token from environment variable');
-    return envToken;
-  }
-  
-  // Priority 2: localStorage (for development/testing)
-  const storedToken = localStorage.getItem('altus_bearer_token');
-  if (storedToken && storedToken.length > 50) {
-    console.log('[Altus API] Using Bearer token from localStorage');
-    return storedToken;
-  }
-  
-  // Priority 3: Fallback token (UAT token - should be replaced)
-  const fallbackToken = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
-  console.warn('[Altus API] Using fallback Bearer token - this should be replaced with your actual UAT token');
-  console.warn('[Altus API] Set REACT_APP_ALTUS_BEARER_TOKEN environment variable or use updateBearerToken()');
-  return fallbackToken;
+// Fixed Bearer token from UAT Documentation - exact match
+const FIXED_BEARER_TOKEN = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
+
+// Get Bearer token - using fixed token as per documentation
+const getInitialBearerToken = (): string => {
+  console.log('[Altus API] Using fixed Bearer token from UAT documentation');
+  return FIXED_BEARER_TOKEN;
 };
 
-// Token storage for dynamic updates
-let currentBearerToken: string | null = getInitialBearerToken();
+// Token storage - using fixed token from documentation
+let currentBearerToken: string = getInitialBearerToken();
+
+// Helper function to convert YYYY-MM-DD to MM/DD/YYYY HH:MM:SS format (Altus API requirement)
+const formatDateForAltus = (dateString: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year} 00:00:00`;
+};
 
 // Custom error types
 export interface AltusApiError {
@@ -67,41 +68,38 @@ export class AltusApiException extends Error {
   }
 }
 
-// Create Axios instance with default configuration
-const altusApiClient: AxiosInstance = axios.create({
-  baseURL: ALTUS_BASE_URL,
+// Create Axios instances with exact URLs from documentation
+const createApiClient = (baseURL: string): AxiosInstance => axios.create({
+  baseURL,
   timeout: REQUEST_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'Authorization': `Bearer ${currentBearerToken}`
   },
 });
 
-// Function to get current Bearer token
-const getBearerToken = (): string | null => {
-  // Return the current token (could be updated dynamically)
+// API clients for each service - matching documentation ports exactly
+const loanServicesClient = createApiClient(ALTUS_BASE_URLS.LOAN_SERVICES);
+const customerServicesClient = createApiClient(ALTUS_BASE_URLS.CUSTOMER_SERVICES);
+const productServicesClient = createApiClient(ALTUS_BASE_URLS.PRODUCT_SERVICES);
+const documentServicesClient = createApiClient(ALTUS_BASE_URLS.DOCUMENT_SERVICES);
+const loanListServicesClient = createApiClient(ALTUS_BASE_URLS.LOAN_LIST_SERVICES);
+
+// Function to get current Bearer token - always returns fixed token from documentation
+const getBearerToken = (): string => {
   return currentBearerToken;
 };
 
-// Function to update the Bearer token dynamically
+// Function to update the Bearer token (kept for backward compatibility but logs warning)
 export const updateBearerToken = (newToken: string | null): void => {
-  currentBearerToken = newToken;
-  
-  // Also store in localStorage for persistence across sessions
-  if (newToken) {
-    localStorage.setItem('altus_bearer_token', newToken);
-    console.log('[Altus API] Bearer token updated and stored');
-  } else {
-    localStorage.removeItem('altus_bearer_token');
-    console.log('[Altus API] Bearer token cleared from storage');
-  }
+  console.warn('[Altus API] Token update ignored - using fixed token from UAT documentation');
+  console.warn('[Altus API] Fixed token:', FIXED_BEARER_TOKEN.substring(0, 20) + '...');
 };
 
-// Function to clear the Bearer token
+// Function to clear the Bearer token (kept for backward compatibility but logs warning)
 export const clearBearerToken = (): void => {
-  currentBearerToken = null;
-  localStorage.removeItem('altus_bearer_token');
-  console.log('[Altus API] Bearer token cleared from memory and storage');
+  console.warn('[Altus API] Token clear ignored - using fixed token from UAT documentation');
 };
 
 // Function to get current token status for debugging
@@ -140,68 +138,9 @@ const isTokenValid = (token: string | null): boolean => {
   return true;
 };
 
-// Request interceptor for adding Bearer token and handling token issues
-altusApiClient.interceptors.request.use(
-  (config) => {
-    const token = getBearerToken();
-    
-    if (!token) {
-      console.warn('[Altus API] No Bearer token available for request to:', config.url);
-      console.warn('[Altus API] Request may fail due to missing authentication');
-    } else if (!isTokenValid(token)) {
-      console.warn('[Altus API] Bearer token appears to be invalid or expired');
-      console.warn('[Altus API] Request may fail due to authentication issues');
-    } else {
-      // Add valid token to Authorization header
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    console.log(`[Altus API] ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => {
-    console.error('[Altus API] Request interceptor error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Request interceptor for logging and additional configuration (keeping existing one)
-altusApiClient.interceptors.request.use(
-  (config) => {
-    // Additional request processing can go here
-    return config;
-  },
-  (error) => {
-    console.error('[Altus API] Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for error handling and logging
-altusApiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    console.log(`[Altus API] Response ${response.status} from ${response.config.url}`);
-    return response;
-  },
-  (error: AxiosError) => {
-    // Handle token-related errors specifically
-    if (error.response?.status === 401) {
-      const currentToken = getBearerToken();
-      if (!currentToken) {
-        console.warn('[Altus API] 401 Unauthorized - No Bearer token provided');
-        console.warn('[Altus API] Please set a valid Bearer token using updateBearerToken()');
-      } else {
-        console.warn('[Altus API] 401 Unauthorized - Bearer token may be expired or invalid');
-        console.warn('[Altus API] Current token:', currentToken.substring(0, 20) + '...');
-        console.warn('[Altus API] Consider refreshing the token or checking token validity');
-      }
-    }
-    
-    const altusError = handleApiError(error);
-    console.error('[Altus API] Response error:', altusError);
-    return Promise.reject(new AltusApiException(altusError));
-  }
-);
+// Note: Service-specific clients are configured with interceptors above
+// All clients (loanServicesClient, customerServicesClient, etc.) have the same
+// token handling and error management setup
 
 // Comprehensive error handler
 function handleApiError(error: AxiosError): AltusApiError {
@@ -318,7 +257,7 @@ export async function postWithPayload<TRequest, TResponse>(
   config?: AxiosRequestConfig
 ): Promise<TResponse> {
   try {
-    const response = await altusApiClient.post<TResponse>(endpoint, payload, config);
+    const response = await loanServicesClient.post<TResponse>(endpoint, payload, config);
     
     // Validate response structure
     if (!response.data) {
@@ -350,7 +289,7 @@ export async function get<TResponse>(
   config?: AxiosRequestConfig
 ): Promise<TResponse> {
   try {
-    const response = await altusApiClient.get<TResponse>(endpoint, config);
+    const response = await loanServicesClient.get<TResponse>(endpoint, config);
     
     if (!response.data) {
       throw new AltusApiException({
@@ -381,7 +320,7 @@ export async function put<TRequest, TResponse>(
   config?: AxiosRequestConfig
 ): Promise<TResponse> {
   try {
-    const response = await altusApiClient.put<TResponse>(endpoint, payload, config);
+    const response = await loanServicesClient.put<TResponse>(endpoint, payload, config);
     
     if (!response.data) {
       throw new AltusApiException({
@@ -411,7 +350,7 @@ export async function del<TResponse>(
   config?: AxiosRequestConfig
 ): Promise<TResponse> {
   try {
-    const response = await altusApiClient.delete<TResponse>(endpoint, config);
+    const response = await loanServicesClient.delete<TResponse>(endpoint, config);
     
     if (!response.data) {
       throw new AltusApiException({
@@ -442,7 +381,7 @@ export async function uploadFile<TResponse>(
   onUploadProgress?: (progressEvent: any) => void
 ): Promise<TResponse> {
   try {
-    const response = await altusApiClient.post<TResponse>(endpoint, formData, {
+    const response = await documentServicesClient.post<TResponse>(endpoint, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -475,7 +414,7 @@ export async function uploadFile<TResponse>(
 export async function checkApiHealth(): Promise<{ status: string; timestamp: string }> {
   try {
     // Try a simple GET request to test connectivity
-    await altusApiClient.get('/health', {
+    await loanServicesClient.get('/health', {
       timeout: 5000, // Shorter timeout for health check
     });
     
@@ -633,7 +572,7 @@ export function handleAltusResponse<T extends {
 // Create a new retail customer
 export async function createRetailCustomer(data: RetailCustomerRequest): Promise<CustomerDetailsResponse> {
   const customerServicesClient = axios.create({
-    baseURL: 'http://3.6.174.212:5011/',
+    baseURL: ALTUS_BASE_URLS.CUSTOMER_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -643,37 +582,63 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
   });
 
   try {
+    // Validate required nested objects
+    if (!data.address || typeof data.address !== 'object') {
+      console.error('Address validation failed:', data.address);
+      throw new Error('Address information is required and must be an object');
+    }
+    if (!data.address.street || !data.address.city || !data.address.province) {
+      console.error('Address fields missing:', data.address);
+      throw new Error('Address must include street, city, and province');
+    }
+    if (!data.bankDetails || typeof data.bankDetails !== 'object') {
+      console.error('Bank details validation failed:', data.bankDetails);
+      throw new Error('Bank details are required and must be an object');
+    }
+    
     // UAT API requires specific request format with 'body' wrapper and specific fields
     const uatRequest = {
       body: {
         Command: "Create",
         FirstName: data.firstName,
         MiddleName: "", // Optional field
-        LastName: data.lastName || "",
+        LastName: data.lastName,
         CustomerStatus: "Active",
-        NRCIssueDate: "07/01/2020 00:00:00", // TODO: Use actual NRC issue date
-        UpdatedBy: "system", // TODO: Use actual user
-        PrimaryAddress: data.address?.street || "",
-        ProvinceName: data.address?.province || "Lusaka",
-        DistrictName: data.address?.city || "Lusaka", 
-        CountryName: data.address?.country || "Zambia",
-        Postalcode: data.address?.postalCode || "10101",
+        NRCIssueDate: formatDateForAltus(data.nrcIssueDate),
+        UpdatedBy: "WebPortal",
+        PrimaryAddress: data.address.street || data.address,
+        ProvinceName: data.address.province,
+        DistrictName: data.address.city, 
+        CountryName: data.address.country || "Zambia",
+        Postalcode: data.address.postalCode || "",
         NRCNumber: data.nrc,
         ContactNo: data.phoneNumber,
-        EmailID: data.emailAddress || "",
-        BranchName: "Lusaka", // TODO: Use actual branch
-        GenderName: data.gender || "Male",
-        Title: data.gender === "Female" ? "Mrs" : "Mr",
-        DOB: data.dateOfBirth || "01/01/1990 00:00:00",
-        FinancialInstitutionName: data.bankDetails?.bankName || "Indo Zambia Bank",
-        FinancialInstitutionBranchName: data.bankDetails?.branchCode || "Lusaka",
-        AccountNumber: data.bankDetails?.accountNumber || "TBC",
-        AccountType: data.bankDetails?.accountType || "Savings"
+        EmailID: data.emailAddress,
+        BranchName: data.preferredBranch || data.address.province, // Use selected branch or default to province
+        GenderName: data.gender,
+        Title: data.title,
+        DOB: formatDateForAltus(data.dateOfBirth),
+        FinancialInstitutionName: data.bankDetails.bankName,
+        FinancialInstitutionBranchName: data.bankDetails.branchCode,
+        AccountNumber: data.bankDetails.accountNumber,
+        AccountType: data.bankDetails.accountType
       }
     };
 
-    console.log('Debug: UAT Customer Creation Request:', uatRequest);
+    console.log('Debug: UAT Customer Creation Request:', JSON.stringify(uatRequest, null, 2));
     const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices/RetailCustomer', uatRequest);
+    
+    console.log('Debug: UAT Customer Creation Response:', JSON.stringify(response.data, null, 2));
+    
+    // Check if API returned failure status
+    if (response.data.executionStatus === 'Failure') {
+      console.error('API returned failure:', response.data.executionMessage);
+      throw new AltusApiException({
+        message: response.data.executionMessage || 'Customer creation failed',
+        code: 'CUSTOMER_CREATION_FAILED',
+        details: { endpoint: 'API/CustomerServices/RetailCustomer', response: response.data }
+      });
+    }
 
     return response.data; // Return full UAT response
   } catch (error) {
@@ -688,7 +653,7 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
 // Create a new business customer
 export async function createBusinessCustomer(data: BusinessCustomerRequest): Promise<CustomerDetailsResponse['outParams']> {
   const customerServicesClient = axios.create({
-    baseURL: 'http://3.6.174.212:5011/',
+    baseURL: ALTUS_BASE_URLS.CUSTOMER_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -698,7 +663,7 @@ export async function createBusinessCustomer(data: BusinessCustomerRequest): Pro
   });
 
   try {
-    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices', {
+    const response = await customerServicesClient.post<CustomerDetailsResponse>('API/CustomerServices/BusinessCustomer', {
       body: data
     });
 
@@ -715,7 +680,7 @@ export async function createBusinessCustomer(data: BusinessCustomerRequest): Pro
 // Update an existing retail customer
 export async function updateRetailCustomer(data: RetailCustomerRequest): Promise<CustomerDetailsResponse['outParams']> {
   const customerServicesClient = axios.create({
-    baseURL: 'http://3.6.174.212:5011/',
+    baseURL: ALTUS_BASE_URLS.CUSTOMER_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -742,7 +707,7 @@ export async function updateRetailCustomer(data: RetailCustomerRequest): Promise
 // Update an existing business customer
 export async function updateBusinessCustomer(data: BusinessCustomerRequest): Promise<CustomerDetailsResponse['outParams']> {
   const customerServicesClient = axios.create({
-    baseURL: 'http://3.6.174.212:5011/',
+    baseURL: ALTUS_BASE_URLS.CUSTOMER_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -769,7 +734,7 @@ export async function updateBusinessCustomer(data: BusinessCustomerRequest): Pro
 // Get customer details by identity number
 export async function getCustomerDetails(identityNo: string): Promise<CustomerDetailsResponse['outParams']> {
   const customerServicesClient = axios.create({
-    baseURL: 'http://3.6.174.212:5011/',
+    baseURL: ALTUS_BASE_URLS.CUSTOMER_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -804,11 +769,11 @@ export async function getCustomerDetails(identityNo: string): Promise<CustomerDe
 // Base URL: http://3.6.174.212:5010/API/LoanServices
 // ============================================================================
 
-// Get loan balance by loan ID
+// Get loan balance by loan ID - exact endpoint from UAT documentation
 export async function getLoanBalance(loanId: string): Promise<LoanBalanceResponse['outParams']> {
   try {
-    const response = await altusApiClient.post<LoanBalanceResponse>('API/LoanServices', {
-      body: { loanId }
+    const response = await loanServicesClient.post<LoanBalanceResponse>('API/LoanServices/GetLoanBalance', {
+      body: { LoanId: loanId }
     });
 
     return handleAltusResponse(response.data, 'Get Loan Balance');
@@ -821,11 +786,11 @@ export async function getLoanBalance(loanId: string): Promise<LoanBalanceRespons
   }
 }
 
-// Get loan status by loan ID
+// Get loan status by loan ID - exact endpoint from UAT documentation
 export async function getLoanStatus(loanId: string): Promise<LoanStatusResponse['outParams']> {
   try {
-    const response = await altusApiClient.post<LoanStatusResponse>('API/LoanServices', {
-      body: { loanId }
+    const response = await loanServicesClient.post<LoanStatusResponse>('API/LoanServices/GetLoanStatus', {
+      body: { LoanId: loanId }
     });
 
     return handleAltusResponse(response.data, 'Get Loan Status');
@@ -838,11 +803,11 @@ export async function getLoanStatus(loanId: string): Promise<LoanStatusResponse[
   }
 }
 
-// Get loan details by loan ID
+// Get loan details by loan ID - exact endpoint from UAT documentation
 export async function getLoanDetails(loanId: string): Promise<LoanDetailsResponse['outParams']> {
   try {
-    const response = await altusApiClient.post<LoanDetailsResponse>('API/LoanServices', {
-      body: { loanId }
+    const response = await loanServicesClient.post<LoanDetailsResponse>('API/LoanServices/GetLoanDetails', {
+      body: { LoanId: loanId }
     });
 
     return handleAltusResponse(response.data, 'Get Loan Details');
@@ -863,7 +828,7 @@ export async function getLoanDetails(loanId: string): Promise<LoanDetailsRespons
 // Get loan product details by product code and employer ID
 export async function getLoanProductDetails(productCode: string, employerId: string): Promise<LoanProductResponse['outParams']> {
   const loanProductClient = axios.create({
-    baseURL: 'http://3.6.174.212:5012/',
+    baseURL: ALTUS_BASE_URLS.PRODUCT_SERVICES,
     timeout: REQUEST_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -873,7 +838,7 @@ export async function getLoanProductDetails(productCode: string, employerId: str
   });
 
   try {
-    const response = await loanProductClient.post<LoanProductResponse>('API/GetLoanProducts', {
+    const response = await loanProductClient.post<LoanProductResponse>('API/GetLoanProducts/ProductDetails', {
       body: { productCode, employerId }
     });
 
@@ -888,93 +853,17 @@ export async function getLoanProductDetails(productCode: string, employerId: str
 }
 
 // ============================================================================
-// LOAN REQUEST SERVICES API FUNCTIONS
-// Base URL: http://3.6.174.212:5010/API/LoanServices (same as Loan Services)
+// LOAN REQUEST SERVICES API FUNCTIONS - UAT DOCUMENTATION
+// Base URL: http://3.6.174.212:5013/API/LoanRequest (PORT 5013 as per UAT docs)
 // ============================================================================
 
-// Submit a new loan request (returns ApplicationNumber needed for document upload)
+// Submit a new salaried loan request (returns ApplicationNumber needed for document upload)
+// UAT Endpoint: POST http://3.6.174.212:5013/API/LoanRequest/Salaried
 export async function submitLoanRequest(data: any): Promise<LoanRequestResponse> {
   try {
-    // UAT API request format for salaried loan request
-    const uatRequest = {
-      body: {
-        TypeOfCustomer: "Existing", // Since we created customer first
-        CustomerId: data.customerId,
-        IdentityNo: data.identityNo || data.nrc,
-        ContactNo: data.contactNo || data.phoneNumber,
-        EmailId: data.emailId || data.emailAddress,
-        Tenure: data.tenureMonths || 12,
-        LoanAmount: data.requestedAmount || data.loanAmount,
-        EmployerName: data.employerName || "",
-        PayrollNo: data.payrollNo || "",
-        NetSalary: data.netSalary || 0,
-        GrossSalary: data.grossSalary || 0,
-        DateOfBirth: data.dateOfBirth || "01/01/1990 00:00:00",
-        Gender: data.gender || "Male"
-      }
-    };
-
-    console.log('Debug: UAT Loan Request:', uatRequest);
-    const response = await altusApiClient.post<LoanRequestResponse>('API/LoanServices/SalariedLoanRequest', uatRequest);
-
-    return response.data; // Return full UAT response
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const altusError = handleApiError(error);
-      throw new AltusApiException(altusError);
-    }
-    throw error;
-  }
-}
-
-// Convert file to byte format for UAT API
-async function fileToByteFormat(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) {
-        // Convert ArrayBuffer to base64 string for byte format
-        const bytes = new Uint8Array(reader.result as ArrayBuffer);
-        let binaryString = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binaryString += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binaryString);
-        resolve(base64);
-      } else {
-        reject(new Error('Failed to read file'));
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-// Map document types to UAT API codes
-const getUATDocumentTypeCode = (docType: string): string => {
-  const typeMap: Record<string, string> = {
-    'nrc-front': '6',        // NRC ID (Client)
-    'nrc-back': '6',         // NRC ID (Client) 
-    'payslip-1': '18',       // Payslip (Last 3 months)
-    'payslip-2': '18',       // Payslip (Last 3 months)
-    'payslip-3': '18',       // Payslip (Last 3 months)
-    'payslip': '18',         // Payslip (Last 3 months)
-    'reference-letter': '3', // Business Registration Certificate (City Council)
-    'work-id': '29',         // Employment Contract
-    'selfie': '17',          // Passport (closest match for photo)
-    'bank-statement': '30',  // Order Copies (closest match)
-    'combined-payslips': '18' // Payslip (Last 3 months)
-  };
-  
-  return typeMap[docType] || '30'; // Default to "Order Copies"
-};
-
-// Upload loan document (completely rewritten for UAT API)
-export async function uploadLoanDocument(applicationNumber: string, documentType: string, file: File, documentNo?: string): Promise<UploadDocumentResponse> {
-  try {
-    // Create document upload client (port 5013)
-    const documentUploadClient = axios.create({
-      baseURL: 'http://3.6.174.212:5013/',
+    // Create Loan Request client (port 5013 as per UAT documentation)
+    const loanRequestClient = axios.create({
+      baseURL: ALTUS_BASE_URLS.DOCUMENT_SERVICES,
       timeout: REQUEST_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
@@ -983,21 +872,347 @@ export async function uploadLoanDocument(applicationNumber: string, documentType
       },
     });
 
-    // Convert file to byte format
-    console.log('Debug: Converting file to byte format...');
+    // Determine customer type
+    const typeOfCustomer = data.TypeOfCustomer || data.typeOfCustomer || "Existing";
+    const isNewCustomer = typeOfCustomer === "New";
+
+    // UAT API request format for salaried loan request - exact field names from documentation
+    // CRITICAL: For Existing customers, DO NOT include FirstName, MiddleName, LastName, DateOfBirth
+    const uatRequest: any = {
+      body: {
+        TypeOfCustomer: typeOfCustomer,
+        CustomerId: data.CustomerId || data.customerId || "",
+        IdentityNo: data.IdentityNo || data.identityNo || data.nrc || "",
+        ContactNo: data.ContactNo || data.contactNo || data.phoneNumber || "",
+        EmailId: data.EmailId || data.emailId || data.emailAddress || "",
+        
+        // Address Information
+        PrimaryAddress: data.PrimaryAddress || data.primaryAddress || data.address || "",
+        ProvinceName: data.ProvinceName || data.provinceName || data.province || "",
+        DistrictName: data.DistrictName || data.districtName || data.city || "",
+        CountryName: data.CountryName || data.countryName || "Zambia",
+        Postalcode: data.Postalcode || data.postalcode || data.postalCode || "",
+        
+        // Employment Information
+        EmployeeNumber: data.EmployeeNumber || data.employeeNumber || data.payrollNumber || "",
+        Designation: data.Designation || data.designation || data.occupation || "",
+        EmployerName: data.EmployerName || data.employerName || "",
+        EmployementType: data.EmployementType || data.employmentType || "1",
+        
+        // Loan Details
+        Tenure: data.Tenure || data.tenure || data.tenureMonths || 12,
+        Gender: data.Gender || data.gender || "Male",
+        LoanAmount: data.LoanAmount || data.loanAmount || data.requestedAmount || 0,
+        GrossIncome: data.GrossIncome || data.grossIncome || data.grossSalary || 0,
+        NetIncome: data.NetIncome || data.netIncome || data.netSalary || 0,
+        Deductions: data.Deductions || data.deductions || 0,
+        
+        // Bank Details
+        FinancialInstitutionName: data.FinancialInstitutionName || data.financialInstitutionName || data.bankName || "",
+        FinancialInstitutionBranchName: data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || data.bankBranch || "",
+        AccountNumber: data.AccountNumber || data.accountNumber || "",
+        AccountType: data.AccountType || data.accountType || "",
+        
+        // Reference/Referrer Details
+        ReferrerName: data.ReferrerName || data.referrerName || data.reference?.name || "",
+        ReferrerNRC: data.ReferrerNRC || data.referrerNRC || data.reference?.nrc || "",
+        ReferrerContactNo: data.ReferrerContactNo || data.referrerContactNo || data.reference?.phone || "",
+        ReferrerPhysicalAddress: data.ReferrerPhysicalAddress || data.referrerPhysicalAddress || data.reference?.address || "",
+        ReferrerRelationType: data.ReferrerRelationType || data.referrerRelationType || data.reference?.relationship || "",
+        
+        // Next of Kin Details
+        KinName: data.KinName || data.kinName || (data.nextOfKin ? `${data.nextOfKin.firstName || ''} ${data.nextOfKin.lastName || ''}`.trim() : ""),
+        KinNRC: data.KinNRC || data.kinNRC || data.nextOfKin?.nrc || "",
+        KinRelationship: data.KinRelationship || data.kinRelationship || data.nextOfKin?.relationship || "",
+        KinMobileNo: data.KinMobileNo || data.kinMobileNo || data.nextOfKin?.phone || "",
+        KinAddress: data.KinAddress || data.kinAddress || data.nextOfKin?.address || "",
+        KinProvinceName: data.KinProvinceName || data.kinProvinceName || data.nextOfKin?.province || "",
+        KinDistrictName: data.KinDistrictName || data.kinDistrictName || data.nextOfKin?.city || "",
+        KinCountryName: data.KinCountryName || data.kinCountryName || data.nextOfKin?.country || "Zambia"
+      }
+    };
+
+    // Only include personal details for NEW customers
+    if (isNewCustomer) {
+      uatRequest.body.FirstName = data.FirstName || data.firstName || "";
+      uatRequest.body.MiddleName = data.MiddleName || data.middleName || "";
+      uatRequest.body.LastName = data.LastName || data.lastName || "";
+      
+      // Format DateOfBirth to MM/DD/YYYY HH:MM:SS format required by Altus API
+      const dobValue = data.DateOfBirth || data.dateOfBirth || data.dob || "";
+      uatRequest.body.DateOfBirth = dobValue ? formatDateForAltus(dobValue) : "";
+      
+      console.log('Debug: New customer loan request - including personal details');
+    } else {
+      console.log('Debug: Existing customer loan request - excluding personal details (FirstName, MiddleName, LastName, DateOfBirth)');
+    }
+
+    console.log('Debug: UAT Salaried Loan Request (Port 5013):', {
+      typeOfCustomer,
+      customerId: uatRequest.body.CustomerId,
+      includesPersonalDetails: isNewCustomer
+    });
+    
+    const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Salaried', uatRequest);
+
+    console.log('Debug: Loan Request Response:', response.data);
+    return response.data; // Return full UAT response
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Debug: Loan Request Error:', error.response?.data);
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    throw error;
+  }
+}
+
+// Submit a new business loan request - from UAT documentation
+// UAT Endpoint: POST http://3.6.174.212:5013/API/LoanRequest/Business
+export async function submitBusinessLoanRequest(data: any): Promise<LoanRequestResponse> {
+  try {
+    // Create Loan Request client (port 5013 as per UAT documentation)
+    const loanRequestClient = axios.create({
+      baseURL: ALTUS_BASE_URLS.DOCUMENT_SERVICES,
+      timeout: REQUEST_TIMEOUT,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${getBearerToken()}`
+      },
+    });
+
+    // Determine customer type
+    const typeOfCustomer = data.TypeOfCustomer || data.typeOfCustomer || "New";
+    const isNewCustomer = typeOfCustomer === "New";
+
+    // UAT API request format for business loan request - exact field names from documentation
+    // Note: Business loans typically use CustomerName instead of separate FirstName/LastName
+    const uatRequest = {
+      body: {
+        TypeOfCustomer: typeOfCustomer,
+        CustomerId: data.CustomerId || data.customerId || "",
+        CustomerName: data.CustomerName || data.customerName || "",
+        IdentityNo: data.IdentityNo || data.identityNo || data.registrationNo || "",
+        ContactNo: data.ContactNo || data.contactNo || data.phoneNumber || "",
+        EmailId: data.EmailId || data.emailId || data.emailAddress || "",
+        EstimatedValueOfBusiness: data.EstimatedValueOfBusiness || data.estimatedValueOfBusiness || "0",
+        GrossMonthlySales: data.GrossMonthlySales || data.grossMonthlySales || "0",
+        Tenure: data.Tenure || data.tenure || data.tenureMonths || 12,
+        LoanAmount: data.LoanAmount || data.loanAmount || data.requestedAmount || 0,
+        InvoiceDetails: data.InvoiceDetails || data.invoiceDetails || {
+          GridData: {
+            "0": {
+              eColl: {
+                InvoiceNo: { Value: "000000" },
+                InvoiceAmount: { Value: "0" },
+                InvoiceDate: { Value: new Date().toISOString() }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    console.log('Debug: UAT Business Loan Request (Port 5013):', {
+      typeOfCustomer,
+      customerId: uatRequest.body.CustomerId,
+      isNewCustomer
+    });
+    
+    const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Business', uatRequest);
+
+    console.log('Debug: Business Loan Request Response:', response.data);
+    return response.data; // Return full UAT response
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Debug: Business Loan Request Error:', error.response?.data);
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    throw error;
+  }
+}
+
+// Convert file to base64 byte format for UAT API (as prescribed in UAT documentation)
+// UAT Documentation: "The image needs to be uploaded in the byte format"
+// Implementation: Converts file to base64 encoded string
+async function fileToByteFormat(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Validate file before processing
+    if (!file || file.size === 0) {
+      reject(new Error('Invalid file: File is empty or undefined'));
+      return;
+    }
+
+    // Check file size (max 10MB for reasonable API limits)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      reject(new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum allowed: 10MB`));
+      return;
+    }
+
+    console.log(`Debug: Converting file to base64 - Name: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Type: ${file.type}`);
+
+    const reader = new FileReader();
+    
+    reader.onload = () => {
+      if (reader.result) {
+        try {
+          // Convert ArrayBuffer to base64 string (byte format as per UAT spec)
+          const bytes = new Uint8Array(reader.result as ArrayBuffer);
+          let binaryString = '';
+          
+          // Build binary string from byte array
+          for (let i = 0; i < bytes.length; i++) {
+            binaryString += String.fromCharCode(bytes[i]);
+          }
+          
+          // Encode to base64 (this is the "byte format" required by UAT API)
+          const base64 = btoa(binaryString);
+          
+          // Validate base64 output
+          if (!base64 || base64.length === 0) {
+            reject(new Error('Base64 conversion resulted in empty string'));
+            return;
+          }
+
+          console.log(`Debug: File converted to base64 successfully - Output length: ${base64.length} characters`);
+          resolve(base64);
+        } catch (conversionError) {
+          reject(new Error(`Failed to convert file to base64: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`));
+        }
+      } else {
+        reject(new Error('FileReader result is null'));
+      }
+    };
+    
+    reader.onerror = () => {
+      const errorMsg = reader.error?.message || 'Unknown FileReader error';
+      console.error('Debug: FileReader error:', errorMsg);
+      reject(new Error(`Failed to read file: ${errorMsg}`));
+    };
+    
+    // Read file as ArrayBuffer (will be converted to base64)
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Map document types to UAT API codes
+/**
+ * Get UAT Document Type Code from friendly name or numeric code
+ * Full list of document types from UAT API V2 documentation (section 1.12.5)
+ * 
+ * IMPORTANT: This function handles BOTH:
+ * 1. Friendly names (e.g., 'nrc-front', 'payslip') mapped to codes
+ * 2. Numeric codes (e.g., '6', '18') passed through directly
+ */
+const getUATDocumentTypeCode = (docType: string): string => {
+  // If already a valid numeric code (2-3 digits), return as-is
+  // Valid codes from API V2: 2,3,6,7,14,15,16,17,18,27,28,29,30
+  const validCodes = ['2', '3', '6', '7', '14', '15', '16', '17', '18', '27', '28', '29', '30'];
+  if (validCodes.includes(docType)) {
+    console.log(`Debug: Document type '${docType}' is already a valid code, using as-is`);
+    return docType;
+  }
+  
+  const typeMap: Record<string, string> = {
+    // Current form mappings (backward compatible)
+    'nrc-front': '6',        // NRC ID (Client)
+    'nrc-back': '6',         // NRC ID (Client) 
+    'combined-nrc': '6',     // NRC ID (Client) - merged front+back
+    'payslip-1': '18',       // Payslip (Last 3 months)
+    'payslip-2': '18',       // Payslip (Last 3 months)
+    'payslip-3': '18',       // Payslip (Last 3 months)
+    'payslip': '18',         // Payslip (Last 3 months)
+    'combined-payslips': '18', // Payslip (Last 3 months) - merged 3 payslips
+    'reference-letter': '29',  // Employment Contract
+    'work-id': '29',           // Employment Contract
+    'selfie': '17',            // Passport (closest match for photo)
+    'bank-statement': '30',    // Order Copies (closest match)
+    
+    // Full UAT document type code list (for dropdown/form selection)
+    'order-copies': '30',              // Order Copies
+    'articles-association': '16',      // Articles of Association
+    'board-resolution': '14',          // Board Resolution to borrow
+    'company-profile': '15',           // Company profile and details of directors
+    'business-reg-council': '3',       // Business Registration Certificate (City Council)
+    'business-reg-pacra': '2',         // Business Registration Certificate (PACRA)
+    'passport': '17',                  // Passport
+    'employment-contract': '29',       // Employment Contract
+    'nrc-client': '6',                 // NRC ID (Client)
+    'nrc-spouse': '7',                 // NRC ID (Spouse)
+    'residence-permit': '28',          // Residence Permit
+    'work-permit': '27',               // Work Permit
+    'payslips-3months': '18'           // Payslip (Last 3 months)
+  };
+  
+  const mappedCode = typeMap[docType] || '30'; // Default to "Order Copies"
+  console.log(`Debug: Mapped document type '${docType}' to code '${mappedCode}'`);
+  return mappedCode;
+};
+
+// Upload loan document (UAT API compliant with base64 byte format)
+// UAT Endpoint: POST http://3.6.174.212:5014/API/LoanRequest/LoanRequestDocuments (PORT 5014!)
+// Document format: base64 encoded string in documentContent field
+export async function uploadLoanDocument(applicationNumber: string, documentType: string, file: File, documentNo?: string): Promise<UploadDocumentResponse> {
+  try {
+    // Validate inputs
+    if (!applicationNumber || applicationNumber.trim() === '') {
+      throw new AltusApiException({
+        message: 'Application Number is required for document upload',
+        code: 'VALIDATION_ERROR',
+        details: { applicationNumber }
+      });
+    }
+
+    if (!file) {
+      throw new AltusApiException({
+        message: 'File is required for document upload',
+        code: 'VALIDATION_ERROR',
+        details: { documentType }
+      });
+    }
+
+    // Create document upload client (port 5014 as per API V2 docs)
+    const documentUploadClient = axios.create({
+      baseURL: (ALTUS_BASE_URLS as any).DOCUMENT_UPLOAD_BASE || ALTUS_BASE_URLS.DOCUMENT_SERVICES,
+      timeout: REQUEST_TIMEOUT * 2, // Double timeout for file uploads
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${getBearerToken()}`
+      },
+    });
+
+    // Convert file to base64 byte format (as prescribed in UAT documentation)
+    console.log('Debug: Converting file to base64 byte format (UAT requirement)...');
+    console.log(`Debug: File details - Name: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Type: ${file.type}`);
+    
     const documentContent = await fileToByteFormat(file);
+    
+    // Validate base64 conversion
+    if (!documentContent || documentContent.length === 0) {
+      throw new AltusApiException({
+        message: 'File conversion to base64 failed - empty result',
+        code: 'CONVERSION_ERROR',
+        details: { fileName: file.name, fileSize: file.size }
+      });
+    }
+
+    console.log(`Debug: File successfully converted to base64 - Length: ${documentContent.length} characters`);
     
     // Get UAT document type code
     const typeCode = getUATDocumentTypeCode(documentType);
     
-    // UAT API request format
+    // UAT API request format (exact structure from documentation)
     const uatRequest = {
       body: {
         ApplicationNumber: applicationNumber,
         TypeOfDocument: typeCode,
-        DocumentNo: documentNo || Date.now().toString(),
+        DocumentNo: documentNo || `DOC${Date.now()}`,
         Document: {
-          documentContent: documentContent,
+          documentContent: documentContent,  // base64 encoded string (byte format)
           documentName: file.name
         }
       }
@@ -1008,12 +1223,55 @@ export async function uploadLoanDocument(applicationNumber: string, documentType
       documentType,
       typeCode,
       fileName: file.name,
-      fileSize: file.size
+      fileSize: file.size,
+      base64Length: documentContent.length,
+      documentNo: uatRequest.body.DocumentNo
     });
 
     const uploadResponse = await documentUploadClient.post<UploadDocumentResponse>('API/LoanRequest/LoanRequestDocuments', uatRequest);
 
+    console.log('Debug: Document upload response:', uploadResponse.data);
+    
+    // Check if upload was successful
+    if (uploadResponse.data.executionStatus !== 'Success') {
+      console.error('Debug: Document upload failed:', uploadResponse.data);
+      throw new AltusApiException({
+        message: `Document upload failed: ${uploadResponse.data.executionMessage || 'Unknown error'}`,
+        code: 'UPLOAD_FAILED',
+        details: uploadResponse.data
+      });
+    }
+    
     return uploadResponse.data; // Return full UAT response
+  } catch (error) {
+    if (error instanceof AltusApiException) {
+      throw error;
+    }
+    
+    if (axios.isAxiosError(error)) {
+      console.error('Debug: Document upload error:', error.response?.data);
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    
+    console.error('Debug: Unexpected document upload error:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// LOAN LIST SERVICES API FUNCTIONS (PORT 5009) - FROM UAT DOCUMENTATION
+// Base URL: http://3.6.174.212:5009/API/LoanList
+// ============================================================================
+
+// Get loans by customer - from UAT documentation
+export async function getLoansByCustomer(customerId: string): Promise<any> {
+  try {
+    const response = await loanListServicesClient.post('API/LoanList/GetLoansByCustomer', {
+      body: { CustomerId: customerId }
+    });
+
+    return handleAltusResponse(response.data, 'Get Loans by Customer');
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const altusError = handleApiError(error);
@@ -1021,6 +1279,151 @@ export async function uploadLoanDocument(applicationNumber: string, documentType
     }
     throw error;
   }
+}
+
+// EMI Calculator - Updated to correct endpoint on port 5010
+export async function calculateEMI(data: {
+  LoanType: string;
+  ProductCode: string;
+  EmployerID?: string;
+  LoanAmount: string;
+  LoanTenure: string;
+}): Promise<any> {
+  try {
+    const response = await loanServicesClient.post('API/LoanServices/EMICalculator', {
+      body: data
+    });
+
+    return handleAltusResponse(response.data, 'EMI Calculator');
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    throw error;
+  }
+}
+
+// PBL Loan Eligibility - Updated to correct endpoint on port 5010
+export async function getPBLEligibilityStatus(data: {
+  CustomerId: string;
+  LoanAmount: string;
+  LoanTenure: string;
+  [key: string]: any;
+}): Promise<any> {
+  try {
+    const response = await loanServicesClient.post('API/LoanServices/PBLEligibilityStatus', {
+      body: data
+    });
+
+    return handleAltusResponse(response.data, 'PBL Loan Eligibility');
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get Status - Track customer creation approval status
+ * Endpoint: POST http://3.6.174.212:5011/API/CustomerServices/GetStatus
+ * CRITICAL: Customer creation returns RequestId (not CustomerID immediately)
+ * Must poll this endpoint until RequestStatus changes from "0" (Pending) to "1" (Approved/Rejected)
+ */
+export async function getCustomerRequestStatus(requestId: string): Promise<{
+  RequestId: string;
+  RequestStatus: string; // "0" = Pending, "1" = Approved/Rejected
+  ResponseCode?: string;
+  ResponseMessage?: string;
+}> {
+  try {
+    const response = await customerServicesClient.post('API/CustomerServices/GetStatus', {
+      body: {
+        RequestId: requestId
+      }
+    });
+
+    const result = handleAltusResponse(response.data, 'Get Customer Request Status');
+    
+    console.log('[Get Status] Request status check:', {
+      requestId,
+      status: result.RequestStatus,
+      isPending: result.RequestStatus === "0",
+      isApproved: result.RequestStatus === "1"
+    });
+
+    return result;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const altusError = handleApiError(error);
+      throw new AltusApiException(altusError);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Poll customer request status until approved/rejected
+ * @param requestId The RequestId from customer creation response
+ * @param maxAttempts Maximum polling attempts (default: 30)
+ * @param intervalMs Polling interval in milliseconds (default: 2000)
+ * @returns Final status response when approved/rejected
+ */
+export async function pollCustomerRequestStatus(
+  requestId: string,
+  maxAttempts: number = 30,
+  intervalMs: number = 2000
+): Promise<{
+  RequestId: string;
+  RequestStatus: string;
+  ResponseCode?: string;
+  ResponseMessage?: string;
+}> {
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    
+    try {
+      const status = await getCustomerRequestStatus(requestId);
+      
+      // Check if approved/rejected (RequestStatus = "1")
+      if (status.RequestStatus === "1") {
+        console.log(`[Poll Status] Request ${requestId} completed after ${attempts} attempts`);
+        return status;
+      }
+      
+      // Still pending (RequestStatus = "0"), wait and retry
+      console.log(`[Poll Status] Attempt ${attempts}/${maxAttempts}: Request ${requestId} still pending...`);
+      
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(`[Poll Status] Error on attempt ${attempts}:`, error);
+      
+      // If it's the last attempt, throw the error
+      if (attempts >= maxAttempts) {
+        throw error;
+      }
+      
+      // Otherwise wait and retry
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+  }
+  
+  // Max attempts reached without approval
+  throw new AltusApiException({
+    message: `Customer request status check timed out after ${maxAttempts} attempts`,
+    code: 'POLLING_TIMEOUT',
+    details: {
+      requestId,
+      attempts: maxAttempts,
+      intervalMs
+    }
+  });
 }
 
 // Legacy function for backward compatibility (now deprecated)
@@ -1036,8 +1439,14 @@ export async function uploadLoanDocumentLegacy(formData: FormData): Promise<Uplo
   });
 }
 
-// Export the configured axios instance for advanced usage
-export { altusApiClient };
+// Export all service-specific API clients for advanced usage
+export { 
+  loanServicesClient, 
+  customerServicesClient, 
+  productServicesClient, 
+  documentServicesClient, 
+  loanListServicesClient 
+};
 
 // Export default instance with common methods and API functions
 const altusApi = {
@@ -1063,6 +1472,8 @@ const altusApi = {
   updateRetailCustomer,
   updateBusinessCustomer,
   getCustomerDetails,
+  getCustomerRequestStatus,
+  pollCustomerRequestStatus,
   
   // Loan Services API
   getLoanBalance,
@@ -1074,11 +1485,23 @@ const altusApi = {
   
   // Loan Request Services API
   submitLoanRequest,
+  submitBusinessLoanRequest, // Business loan request from UAT documentation
   uploadLoanDocument,
   uploadLoanDocumentLegacy, // For backward compatibility
   
-  // Raw axios client for advanced usage
-  client: altusApiClient,
+  // Loan List Services API (Port 5009) - from UAT documentation
+  getLoansByCustomer,
+  calculateEMI,
+  getPBLEligibilityStatus,
+  
+  // Service-specific clients for advanced usage
+  clients: {
+    loan: loanServicesClient,
+    customer: customerServicesClient,
+    product: productServicesClient,
+    document: documentServicesClient,
+    loanList: loanListServicesClient,
+  },
 };
 
 export default altusApi;

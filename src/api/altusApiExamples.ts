@@ -11,15 +11,7 @@ import altusApi, {
 } from './altusApi';
 
 import type {
-  RetailCustomerRequest,
-  BusinessCustomerRequest,
-  LoanBalanceResponse,
-  LoanStatusResponse,
-  LoanDetailsResponse,
-  CustomerDetailsResponse,
-  LoanProductResponse,
-  LoanRequestResponse,
-  UploadDocumentResponse
+  RetailCustomerRequest
 } from '../types/altus';
 
 // Example interfaces for API requests/responses
@@ -383,8 +375,8 @@ const MyComponent = () => {
 // Example of using the handleAltusResponse helper for custom API calls
 export const customApiCallWithResponseHandler = async (requestData: any): Promise<any> => {
   try {
-    // Make a raw axios call
-    const response = await altusApi.client.post('/API/CustomEndpoint', {
+    // Make a raw axios call using the loan client as default
+    const response = await altusApi.clients.loan.post('/API/CustomEndpoint', {
       body: requestData
     });
     
@@ -505,6 +497,8 @@ export const createRetailCustomerExample = async (): Promise<void> => {
       firstName: "John",
       lastName: "Mwanza",
       nrc: "123456/78/9",
+      nrcIssueDate: "2015-01-15",
+      title: "Mr",
       phoneNumber: "+260977123456",
       emailAddress: "john.mwanza@email.com",
       dateOfBirth: "1990-05-15",
@@ -527,6 +521,12 @@ export const createRetailCustomerExample = async (): Promise<void> => {
         salary: 8500,
         employmentDate: "2020-01-15",
         employmentType: "Permanent"
+      },
+      bankDetails: {
+        bankName: "Indo Zambia Bank",
+        accountNumber: "1234567890",
+        accountType: "Savings",
+        branchCode: "Lusaka"
       },
       nextOfKin: {
         firstName: "Mary",

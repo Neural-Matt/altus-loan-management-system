@@ -9,9 +9,11 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { FormTextField } from '../../form/FormTextField';
 import { useWizardData } from '../WizardDataContext';
 import { computeLocalLoanEstimate, LoanTypeKey, getLoanProducts, getMaxTenure } from '../../../utils/loanCalculator';
+import { useSnackbar } from '../../feedback/SnackbarProvider';
 
 export const CalculatorStep: React.FC = () => {
   const { loan, setLoan } = useWizardData();
+  const { push } = useSnackbar();
   // Removed API dependency; no loading state required, can reintroduce when backend integration returns
   const [error, setError] = useState<string | null>(null);
   const [loanType, setLoanType] = useState<LoanTypeKey>('instant-salary-advance');
@@ -72,7 +74,19 @@ export const CalculatorStep: React.FC = () => {
   };
 
   const onValid: SubmitHandler<CalculatorFormValues> = (values) => performCalc(values);
-  (window as any).__calculatorStepSubmit = handleSubmit(onValid as any, () => false);
+  
+  // Validator to ensure amount and tenure are filled before proceeding
+  (window as any).__calculatorStepSubmit = async () => {
+    if (!loan.amount || loan.amount < 100) {
+      push('⚠️ Please enter a loan amount (minimum ZMW 100)', 'error');
+      return false;
+    }
+    if (!loan.tenureMonths || loan.tenureMonths < 1) {
+      push('⚠️ Please enter the loan tenure (number of months)', 'error');
+      return false;
+    }
+    return true;
+  };
 
   // Realtime calculation (debounced) on watched values
   const debounceRef = useRef<number | null>(null);

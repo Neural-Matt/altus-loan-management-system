@@ -62,7 +62,7 @@ const Inner: React.FC<Omit<MultiStepWizardProps, 'steps'> & { providedSteps: Wiz
             goNext();
           }} variant="contained">Next</Button>
         )}
-        {isLast && (
+        {isLast && !loan.applicationNumber && (
           <Button color="secondary" variant="contained" onClick={async () => {
             if (beforeSubmit) await beforeSubmit();
             if (validators && validators[activeIndex]) {

@@ -99,7 +99,8 @@ const navItems: NavItem[] = [
   { label: 'Home', href: 'https://altusfinancialservices.com/index.html', external: true },
   { label: 'About', href: 'https://altusfinancialservices.com/about.html', external: true },
   { label: 'Contact Us', href: 'https://altusfinancialservices.com/contact.html', external: true },
-  { label: 'Track Application', href: '/track' }
+  { label: 'Track Application', href: '/track' },
+  { label: '🧪 API Tester', href: '/api-test', highlight: true }
 ];
 
 export const Header: React.FC = () => {

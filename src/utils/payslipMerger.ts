@@ -26,7 +26,7 @@ export const mergePayslips = async (payslip1: File, payslip2: File, payslip3: Fi
             pageAdded = true;
             resolve();
           } else if (file.type.startsWith('image/')) {
-            // For image files, add them directly to the PDF
+            // For image files, add them directly to the PDF with compression
             if (pageAdded) pdf.addPage();
             
             const img = new Image();
@@ -42,23 +42,39 @@ export const mergePayslips = async (payslip1: File, payslip2: File, payslip3: Fi
                 const imgRatio = img.width / img.height;
                 const pageRatio = pageWidth / pageHeight;
                 
-                let width, height;
+                let pdfWidth, pdfHeight;
                 if (imgRatio > pageRatio) {
-                  width = pageWidth;
-                  height = pageWidth / imgRatio;
+                  pdfWidth = pageWidth;
+                  pdfHeight = pageWidth / imgRatio;
                 } else {
-                  height = pageHeight;
-                  width = pageHeight * imgRatio;
+                  pdfHeight = pageHeight;
+                  pdfWidth = pageHeight * imgRatio;
                 }
                 
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                // Optimize canvas size - use max 1200px width for compression
+                const maxWidth = 1200;
+                const maxHeight = 1200;
+                let canvasWidth = img.width;
+                let canvasHeight = img.height;
                 
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                pdf.addImage(dataUrl, 'JPEG', 10, 10, width, height);
+                if (canvasWidth > maxWidth || canvasHeight > maxHeight) {
+                  const scale = Math.min(maxWidth / canvasWidth, maxHeight / canvasHeight);
+                  canvasWidth = Math.floor(canvasWidth * scale);
+                  canvasHeight = Math.floor(canvasHeight * scale);
+                }
+                
+                // Set canvas to optimized size
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // Draw scaled image
+                ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                
+                // Convert to JPEG with compression (0.7 quality)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                pdf.addImage(dataUrl, 'JPEG', 10, 10, pdfWidth, pdfHeight);
                 pdf.setFontSize(8);
-                pdf.text(`Payslip ${pageNumber}: ${file.name}`, 10, height + 20);
+                pdf.text(`Payslip ${pageNumber}`, 10, pdfHeight + 20);
                 
                 pageAdded = true;
                 resolve();

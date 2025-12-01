@@ -6,8 +6,10 @@ import { LandingPage } from '../pages/LandingPage';
 import { WizardPage } from '../pages/WizardPage';
 import { TrackingPage } from '../pages/TrackingPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import ApiTestPage from '../pages/ApiTestPage';
 import { SnackbarProvider } from './feedback/SnackbarProvider';
 import { AltusProvider } from '../context';
+import APITesterComponent from './APITesterComponent';
 
 const App: React.FC = () => {
   return (
@@ -20,6 +22,8 @@ const App: React.FC = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/apply/:category/:product" element={<WizardPage />} />
               <Route path="/track" element={<TrackingPage />} />
+              <Route path="/api-test" element={<APITesterComponent />} />
+              <Route path="/test-apis" element={<ApiTestPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </SnackbarProvider>

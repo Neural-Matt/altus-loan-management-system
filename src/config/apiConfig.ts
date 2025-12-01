@@ -5,15 +5,19 @@ export const API_CONFIG = {
     LOAN_SERVICES_BASE: '/loan-api',  // Proxied to 3.6.174.212:5010
     CUSTOMER_SERVICES_BASE: '/customer-api', // Proxied to 3.6.174.212:5011  
     PRODUCT_SERVICES_BASE: '/product-api', // Proxied to 3.6.174.212:5012
-    DOCUMENT_SERVICES_BASE: '/document-api', // Proxied to 3.6.174.212:5013
+    DOCUMENT_SERVICES_BASE: '/document-api', // Proxied to 3.6.174.212:5013 (Loan Request)
+    DOCUMENT_UPLOAD_BASE: '/document-upload-api', // Proxied to 3.6.174.212:5014 (Document Upload)
+    EMI_CALCULATOR_BASE: '/emi-api', // Proxied to 3.6.174.212:5009
   },
   
-  // Production mode - use direct URLs 
+  // Production mode - use relative URLs to go through nginx reverse proxy
   production: {
-    LOAN_SERVICES_BASE: 'http://3.6.174.212:5010',
-    CUSTOMER_SERVICES_BASE: 'http://3.6.174.212:5011',
-    PRODUCT_SERVICES_BASE: 'http://3.6.174.212:5012', 
-    DOCUMENT_SERVICES_BASE: 'http://3.6.174.212:5013',
+    LOAN_SERVICES_BASE: '/loan-api',
+    CUSTOMER_SERVICES_BASE: '/customer-api',
+    PRODUCT_SERVICES_BASE: '/product-api', 
+    DOCUMENT_SERVICES_BASE: '/document-api',
+    DOCUMENT_UPLOAD_BASE: '/document-upload-api',
+    EMI_CALCULATOR_BASE: '/emi-api',
   },
   
   // Testing mode - use direct URLs for browser testing
@@ -22,6 +26,8 @@ export const API_CONFIG = {
     CUSTOMER_SERVICES_BASE: 'http://3.6.174.212:5011',
     PRODUCT_SERVICES_BASE: 'http://3.6.174.212:5012',
     DOCUMENT_SERVICES_BASE: 'http://3.6.174.212:5013',
+    DOCUMENT_UPLOAD_BASE: 'http://3.6.174.212:5014',
+    EMI_CALCULATOR_BASE: 'http://3.6.174.212:5009',
   }
 };
 

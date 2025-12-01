@@ -50,6 +50,8 @@ const AltusContextExample: React.FC = () => {
       firstName: "John",
       lastName: "Banda",
       nrc: "123456/78/9",
+      nrcIssueDate: "2015-01-15",
+      title: "Mr",
       phoneNumber: "+260977123456",
       emailAddress: "john.banda@email.com",
       dateOfBirth: "1990-01-15",
@@ -70,6 +72,12 @@ const AltusContextExample: React.FC = () => {
         salary: 15000,
         employmentDate: "2020-01-01",
         employmentType: "Permanent"
+      },
+      bankDetails: {
+        bankName: "Indo Zambia Bank",
+        accountNumber: "1234567890",
+        accountType: "Savings",
+        branchCode: "Lusaka"
       },
       nextOfKin: {
         firstName: "Jane",

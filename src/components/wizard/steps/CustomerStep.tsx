@@ -17,7 +17,7 @@ export const CustomerStep: React.FC = () => {
   const [openKin, setOpenKin] = React.useState(true);
   const [openRef, setOpenRef] = React.useState(false);
 
-  const { control, handleSubmit, reset, watch } = useForm<CustomerFormValues>({
+  const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
     defaultValues: {
       firstName: customer.firstName || '',
       lastName: customer.lastName || '',
@@ -25,6 +25,12 @@ export const CustomerStep: React.FC = () => {
       email: customer.email || '',
       address: customer.address || '',
       nrc: customer.nrc || '',
+      nrcIssueDate: customer.nrcIssueDate || '',
+      dateOfBirth: customer.dateOfBirth || '',
+      title: customer.title || '',
+      city: customer.city || '',
+      province: customer.province || '',
+      postalCode: customer.postalCode || '',
       purpose: customer.purpose || '',
       gender: customer.gender || '',
       nationality: customer.nationality || '',
@@ -33,11 +39,19 @@ export const CustomerStep: React.FC = () => {
       maritalStatus: customer.maritalStatus || '',
       accommodationType: customer.accommodationType || '',
       employerName: customer.employerName || '',
+      employerId: customer.employerId || '',
       payrollNumber: customer.payrollNumber || '',
+      salary: customer.salary || 0,
+      employmentDate: customer.employmentDate || '',
+      employmentType: customer.employmentType || '',
+      bankName: customer.bankName || '',
+      bankBranch: customer.bankBranch || '',
+      accountNumber: customer.accountNumber || '',
+      accountType: customer.accountType || '',
       nextOfKin: customer.nextOfKin || {},
       reference: customer.reference || {}
     },
-    resolver: zodResolver(customerSchema),
+    resolver: zodResolver(customerSchema) as any,
     mode: 'onBlur'
   });
 
@@ -52,6 +66,12 @@ export const CustomerStep: React.FC = () => {
       email: customer.email || '',
       address: customer.address || '',
       nrc: customer.nrc || '',
+      nrcIssueDate: customer.nrcIssueDate || '',
+      dateOfBirth: customer.dateOfBirth || '',
+      title: customer.title || '',
+      city: customer.city || '',
+      province: customer.province || '',
+      postalCode: customer.postalCode || '',
       purpose: customer.purpose || '',
       gender: customer.gender || '',
       nationality: customer.nationality || '',
@@ -60,7 +80,15 @@ export const CustomerStep: React.FC = () => {
       maritalStatus: customer.maritalStatus || '',
       accommodationType: customer.accommodationType || '',
       employerName: customer.employerName || '',
+      employerId: customer.employerId || '',
       payrollNumber: customer.payrollNumber || '',
+      salary: customer.salary || 0,
+      employmentDate: customer.employmentDate || '',
+      employmentType: customer.employmentType || '',
+      bankName: customer.bankName || '',
+      bankBranch: customer.bankBranch || '',
+      accountNumber: customer.accountNumber || '',
+      accountType: customer.accountType || '',
       nextOfKin: customer.nextOfKin || {},
       reference: customer.reference || {}
     });
@@ -71,32 +99,52 @@ export const CustomerStep: React.FC = () => {
       // Update wizard data first
       setCustomer(values);
       
+      // Validate all required fields before creating request
+      if (!values.address || !values.city || !values.province) {
+        push('Please fill in all address fields (Address, City, Province)', 'error');
+        return;
+      }
+      
+      if (!values.bankName || !values.accountNumber || !values.accountType || !values.bankBranch) {
+        push('Please fill in all bank details', 'error');
+        return;
+      }
+      
+      if (!values.employerName || !values.salary || !values.employmentDate || !values.employmentType) {
+        push('Please fill in all employment details', 'error');
+        return;
+      }
+      
       // Transform wizard data to Altus API format
       const customerRequest = {
         firstName: values.firstName,
-        lastName: values.lastName,
+        lastName: values.lastName || values.firstName, // Use firstName if lastName is empty (API accepts empty LastName)
         nrc: values.nrc,
+        nrcIssueDate: values.nrcIssueDate,
         phoneNumber: values.phone,
         emailAddress: values.email,
-        dateOfBirth: "1990-01-01", // TODO: Add date of birth field to form
+        dateOfBirth: values.dateOfBirth,
+        title: values.title,
         gender: values.gender as "Male" | "Female",
-        nationality: values.nationality === 'Other' ? values.otherNationality || '' : values.nationality || '',
+        nationality: values.nationality === 'Other' ? values.otherNationality || '' : values.nationality || 'Zambian',
         otherNationality: values.nationality === 'Other' ? values.otherNationality : undefined,
-        maritalStatus: values.maritalStatus || '',
+        maritalStatus: values.maritalStatus,
         address: {
-          street: values.address || '',
-          city: "Lusaka", // TODO: Add city field to form
-          province: "Lusaka", // TODO: Add province field to form
+          street: values.address,
+          city: values.city,
+          province: values.province,
+          postalCode: values.postalCode || "",
           country: "Zambia"
         },
+        preferredBranch: values.preferredBranch,
         employment: {
-          employerId: "EMP001", // TODO: Add employer ID field to form
-          employerName: values.employerName || '',
+          employerId: values.employerId || "EMP001",
+          employerName: values.employerName,
           employerCode: values.payrollNumber || '',
-          position: values.occupation || '',
-          salary: 0, // TODO: Add salary field to form
-          employmentDate: "2020-01-01", // TODO: Add employment date field to form
-          employmentType: "Permanent" as const
+          position: values.occupation || 'Employee',
+          salary: values.salary,
+          employmentDate: values.employmentDate,
+          employmentType: (values.employmentType || "Permanent") as "Permanent" | "Contract" | "Temporary"
         },
         nextOfKin: {
           firstName: values.nextOfKin?.firstName || '',
@@ -104,6 +152,12 @@ export const CustomerStep: React.FC = () => {
           relationship: values.nextOfKin?.relationship || '',
           phoneNumber: values.nextOfKin?.phone || '',
           address: values.nextOfKin?.address
+        },
+        bankDetails: {
+          bankName: values.bankName,
+          accountNumber: values.accountNumber,
+          accountType: values.accountType,
+          branchCode: values.bankBranch
         }
       };
 
@@ -132,7 +186,32 @@ export const CustomerStep: React.FC = () => {
       throw err; // Re-throw to prevent wizard from advancing
     }
   };
-  (window as any).__customerStepSubmit = handleSubmit(onValid, () => false);
+  
+  // Validator function that triggers form validation and shows missing fields
+  (window as any).__customerStepSubmit = async () => {
+    const isValid = await trigger(); // Trigger validation on all fields
+    if (!isValid) {
+      const missingFields: string[] = [];
+      Object.keys(errors).forEach(key => {
+        const errorKey = key as keyof typeof errors;
+        if (errors[errorKey]?.message) {
+          missingFields.push(errors[errorKey]?.message as string);
+        }
+      });
+      
+      if (missingFields.length > 0) {
+        push(`⚠️ Please complete all required fields: ${missingFields.slice(0, 3).join(', ')}${missingFields.length > 3 ? '...' : ''}`, 'error');
+      } else {
+        push('Please fill in all required customer information before proceeding', 'error');
+      }
+      return false;
+    }
+    
+    // Update customer data without creating customer (fast track mode)
+    const values = watch();
+    setCustomer(values);
+    return true;
+  };
 
   const Section: React.FC<{ title: string; subtitle?: string; toggle?: boolean; open?: boolean; onToggle?: () => void; children: React.ReactNode; }> = ({ title, subtitle, toggle, open=true, onToggle, children }) => (
     <Paper elevation={0} sx={{ p:2.5, border:'1px solid', borderColor:'divider', borderRadius:3 }}>
@@ -151,12 +230,115 @@ export const CustomerStep: React.FC = () => {
       <Stack spacing={2.5}>
         <Section title="Personal Details" subtitle="Core applicant information">
           <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr' } }}>
+            <Box>
+              <FormTextField 
+                name="title" 
+                control={control} 
+                label="Title"
+                select
+              >
+                <MenuItem value="Mr">Mr</MenuItem>
+                <MenuItem value="Mrs">Mrs</MenuItem>
+                <MenuItem value="Miss">Miss</MenuItem>
+                <MenuItem value="Ms">Ms</MenuItem>
+                <MenuItem value="Dr">Dr</MenuItem>
+              </FormTextField>
+            </Box>
+            <Box></Box>
             <Box><FormTextField name="firstName" control={control} label="First Name" /></Box>
             <Box><FormTextField name="lastName" control={control} label="Last Name" /></Box>
             <Box><FormTextField name="phone" control={control} label="Phone Number" /></Box>
             <Box><FormTextField name="email" control={control} label="Email" /></Box>
-            <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="address" control={control} label="Residential Address" /></Box>
+            <Box><FormTextField name="dateOfBirth" control={control} label="Date of Birth" type="date" InputLabelProps={{ shrink: true }} /></Box>
             <Box><FormNRCField name="nrc" control={control} label="NRC" /></Box>
+            <Box><FormTextField name="nrcIssueDate" control={control} label="NRC Issue Date" type="date" InputLabelProps={{ shrink: true }} /></Box>
+            <Box>
+              <FormTextField 
+                name="gender" 
+                control={control} 
+                label="Gender"
+                select
+              >
+                <MenuItem value="Male">Male</MenuItem>
+                <MenuItem value="Female">Female</MenuItem>
+              </FormTextField>
+            </Box>
+            <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="address" control={control} label="Residential Address" /></Box>
+            <Box><FormTextField name="city" control={control} label="City/District" /></Box>
+            <Box><FormTextField name="province" control={control} label="Province" /></Box>
+            <Box><FormTextField name="postalCode" control={control} label="Postal Code (Optional)" /></Box>
+            <Box>
+              <FormTextField 
+                name="preferredBranch" 
+                control={control} 
+                label="Nearest Branch"
+                select
+                helperText="Select your nearest Altus branch location"
+              >
+                <MenuItem value="Lusaka - HQ">Lusaka - HQ</MenuItem>
+                <MenuItem value="Kitwe">Kitwe</MenuItem>
+                <MenuItem value="Livingstone">Livingstone</MenuItem>
+                <MenuItem value="Kasama">Kasama</MenuItem>
+                <MenuItem value="Solwezi">Solwezi</MenuItem>
+                <MenuItem value="Ndola">Ndola</MenuItem>
+                <MenuItem value="Mansa">Mansa</MenuItem>
+                <MenuItem value="Mongu">Mongu</MenuItem>
+                <MenuItem value="Choma">Choma</MenuItem>
+                <MenuItem value="Chipata">Chipata</MenuItem>
+                <MenuItem value="Lusaka CBD">Lusaka CBD</MenuItem>
+                <MenuItem value="Kabwe">Kabwe</MenuItem>
+              </FormTextField>
+            </Box>
+            <Box>
+              <FormTextField 
+                name="nationality" 
+                control={control} 
+                label="Nationality"
+                select
+              >
+                <MenuItem value="Zambian">Zambian</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </FormTextField>
+            </Box>
+            {nationalityValue === 'Other' && (
+              <Box sx={{ gridColumn:{ xs:'1 / -1', sm:'auto' } }}>
+                <FormTextField 
+                  name="otherNationality" 
+                  control={control} 
+                  label="Specify Nationality" 
+                  placeholder="Enter your nationality"
+                />
+              </Box>
+            )}
+            <Box>
+              <FormTextField 
+                name="maritalStatus" 
+                control={control} 
+                label="Marital Status"
+                select
+              >
+                <MenuItem value="Single">Single</MenuItem>
+                <MenuItem value="Married">Married</MenuItem>
+                <MenuItem value="De facto">De facto</MenuItem>
+                <MenuItem value="Divorced">Divorced</MenuItem>
+                <MenuItem value="Widow">Widow</MenuItem>
+                <MenuItem value="Separated">Separated</MenuItem>
+                <MenuItem value="Civil Union">Civil Union</MenuItem>
+              </FormTextField>
+            </Box>
+            <Box>
+              <FormTextField 
+                name="accommodationType" 
+                control={control} 
+                label="Accommodation Type"
+                select
+              >
+                <MenuItem value="Tenant">Tenant</MenuItem>
+                <MenuItem value="Home Owner">Home Owner</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+                <MenuItem value="Living in Family Home">Living in Family Home</MenuItem>
+              </FormTextField>
+            </Box>
             <Box>
               <FormTextField 
                 name="purpose" 
@@ -188,70 +370,186 @@ export const CustomerStep: React.FC = () => {
                 <MenuItem value="Land purchase">Land purchase</MenuItem>
               </FormTextField>
             </Box>
-            <Box sx={{ gridColumn:{ xs:'1 / -1', sm:'auto' } }}>
-              <FormTextField 
-                name="gender" 
-                control={control} 
-                label="Gender"
-                select
-              >
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-              </FormTextField>
-            </Box>
-            <Box sx={{ gridColumn:{ xs:'1 / -1', sm:'auto' } }}>
-              <FormTextField 
-                name="nationality" 
-                control={control} 
-                label="Nationality"
-                select
-              >
-                <MenuItem value="Zambian">Zambian</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-              </FormTextField>
-            </Box>
-            {nationalityValue === 'Other' && (
-              <Box sx={{ gridColumn:{ xs:'1 / -1', sm:'auto' } }}>
-                <FormTextField 
-                  name="otherNationality" 
-                  control={control} 
-                  label="Specify Nationality" 
-                  placeholder="Enter your nationality"
-                />
-              </Box>
-            )}
-            <Box sx={{ gridColumn:{ xs:'1 / -1', sm:'auto' } }}><FormTextField name="occupation" control={control} label="Occupation" /></Box>
+          </Box>
+        </Section>
+        <Section title="Employment Details" subtitle="Work and income information">
+          <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr' } }}>
+            <Box><FormTextField name="employerName" control={control} label="Employer Name" /></Box>
+            <Box><FormTextField name="payrollNumber" control={control} label="Employee/Payroll Number" /></Box>
+            <Box><FormTextField name="employerId" control={control} label="Employer ID (Optional)" /></Box>
+            <Box><FormTextField name="occupation" control={control} label="Job Title/Position" /></Box>
+            <Box><FormTextField name="salary" control={control} label="Monthly Salary (ZMW)" type="number" /></Box>
+            <Box><FormTextField name="employmentDate" control={control} label="Employment Start Date" type="date" InputLabelProps={{ shrink: true }} /></Box>
             <Box>
               <FormTextField 
-                name="maritalStatus" 
+                name="employmentType" 
                 control={control} 
-                label="Marital Status"
+                label="Employment Type"
                 select
               >
-                <MenuItem value="Single">Single</MenuItem>
-                <MenuItem value="Married">Married</MenuItem>
-                <MenuItem value="De facto">De facto</MenuItem>
-                <MenuItem value="Divorced">Divorced</MenuItem>
-                <MenuItem value="Widow">Widow</MenuItem>
-                <MenuItem value="Separated">Separated</MenuItem>
-                <MenuItem value="Civil Union">Civil Union</MenuItem>
+                <MenuItem value="Permanent">Permanent</MenuItem>
+                <MenuItem value="Contract">Contract</MenuItem>
+                <MenuItem value="Temporary">Temporary</MenuItem>
+              </FormTextField>
+            </Box>
+          </Box>
+        </Section>
+        <Section title="Bank Details" subtitle="Account information for disbursement">
+          <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr' } }}>
+            <Box>
+              <FormTextField 
+                name="bankName" 
+                control={control} 
+                label="Bank Name"
+                select
+              >
+                <MenuItem value="AB Bank">AB Bank</MenuItem>
+                <MenuItem value="Access Bank">Access Bank</MenuItem>
+                <MenuItem value="Access Bank Zambia Limited">Access Bank Zambia Limited</MenuItem>
+                <MenuItem value="Atlas Mara Bank">Atlas Mara Bank</MenuItem>
+                <MenuItem value="Bank of China">Bank of China</MenuItem>
+                <MenuItem value="ABSA Zambia">ABSA Zambia</MenuItem>
+                <MenuItem value="Absa">Absa</MenuItem>
+                <MenuItem value="Cavmont Bank">Cavmont Bank</MenuItem>
+                <MenuItem value="Citibank Zambia">Citibank Zambia</MenuItem>
+                <MenuItem value="Ecobank">Ecobank</MenuItem>
+                <MenuItem value="First Alliance Bank">First Alliance Bank</MenuItem>
+                <MenuItem value="First Capital Bank">First Capital Bank</MenuItem>
+                <MenuItem value="First National Bank">First National Bank</MenuItem>
+                <MenuItem value="Indo Zambia Bank">Indo Zambia Bank</MenuItem>
+                <MenuItem value="Intermarket Banking Corporation">Intermarket Banking Corporation</MenuItem>
+                <MenuItem value="Investrust Bank">Investrust Bank</MenuItem>
+                <MenuItem value="Stanbic Bank Zambia">Stanbic Bank Zambia</MenuItem>
+                <MenuItem value="Standard Chartered Bank Zambia">Standard Chartered Bank Zambia</MenuItem>
+                <MenuItem value="The United Bank of Zambia">The United Bank of Zambia</MenuItem>
+                <MenuItem value="United Bank for Africa">United Bank for Africa</MenuItem>
+                <MenuItem value="Zambia Industrial Commercial Bank">Zambia Industrial Commercial Bank</MenuItem>
+                <MenuItem value="Zambia National Commercial Bank">Zambia National Commercial Bank</MenuItem>
+                <MenuItem value="New Bank">New Bank</MenuItem>
+                <MenuItem value="National Savings and Credit Bank">National Savings and Credit Bank</MenuItem>
+                <MenuItem value="Natsave">Natsave</MenuItem>
+                <MenuItem value="ZNBS">ZNBS</MenuItem>
+                <MenuItem value="Bayport Financial Services">Bayport Financial Services</MenuItem>
+                <MenuItem value="FAB">FAB</MenuItem>
               </FormTextField>
             </Box>
             <Box>
               <FormTextField 
-                name="accommodationType" 
+                name="bankBranch" 
                 control={control} 
-                label="Accommodation Type"
+                label="Bank Branch"
                 select
               >
-                <MenuItem value="Tenant">Tenant</MenuItem>
-                <MenuItem value="Home Owner">Home Owner</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-                <MenuItem value="Living in Family Home">Living in Family Home</MenuItem>
+                <MenuItem value="Head Office">Head Office</MenuItem>
+                <MenuItem value="Lusaka Main">Lusaka Main</MenuItem>
+                <MenuItem value="Lusaka Main Branch">Lusaka Main Branch</MenuItem>
+                <MenuItem value="Lusaka Business Centre">Lusaka Business Centre</MenuItem>
+                <MenuItem value="Cairo Road">Cairo Road</MenuItem>
+                <MenuItem value="Cairo">Cairo</MenuItem>
+                <MenuItem value="Longacres">Longacres</MenuItem>
+                <MenuItem value="Kamwala">Kamwala</MenuItem>
+                <MenuItem value="Arcades">Arcades</MenuItem>
+                <MenuItem value="Manda Hill">Manda Hill</MenuItem>
+                <MenuItem value="Manda Hill Branch">Manda Hill Branch</MenuItem>
+                <MenuItem value="East Park Mall">East Park Mall</MenuItem>
+                <MenuItem value="Cosmopolitan Mall">Cosmopolitan Mall</MenuItem>
+                <MenuItem value="Cosmopolitan">Cosmopolitan</MenuItem>
+                <MenuItem value="Twin Palms Mall">Twin Palms Mall</MenuItem>
+                <MenuItem value="Northend">Northend</MenuItem>
+                <MenuItem value="Lusaka - Northend">Lusaka - Northend</MenuItem>
+                <MenuItem value="Lusaka Northend">Lusaka Northend</MenuItem>
+                <MenuItem value="North End">North End</MenuItem>
+                <MenuItem value="Chilenje">Chilenje</MenuItem>
+                <MenuItem value="Lusaka Chilenje">Lusaka Chilenje</MenuItem>
+                <MenuItem value="Matero">Matero</MenuItem>
+                <MenuItem value="Matero Branch">Matero Branch</MenuItem>
+                <MenuItem value="Lusaka Matero">Lusaka Matero</MenuItem>
+                <MenuItem value="Makeni">Makeni</MenuItem>
+                <MenuItem value="Makeni Mall">Makeni Mall</MenuItem>
+                <MenuItem value="Woodlands">Woodlands</MenuItem>
+                <MenuItem value="Kabulonga">Kabulonga</MenuItem>
+                <MenuItem value="Chelston">Chelston</MenuItem>
+                <MenuItem value="Chelstone">Chelstone</MenuItem>
+                <MenuItem value="Kabwata">Kabwata</MenuItem>
+                <MenuItem value="Soweto">Soweto</MenuItem>
+                <MenuItem value="Soweto Agency">Soweto Agency</MenuItem>
+                <MenuItem value="Chawama">Chawama</MenuItem>
+                <MenuItem value="Lusaka - Chawama">Lusaka - Chawama</MenuItem>
+                <MenuItem value="Kalingalinga">Kalingalinga</MenuItem>
+                <MenuItem value="Garden">Garden</MenuItem>
+                <MenuItem value="Industrial">Industrial</MenuItem>
+                <MenuItem value="Lusaka Industrial">Lusaka Industrial</MenuItem>
+                <MenuItem value="Kafue">Kafue</MenuItem>
+                <MenuItem value="Chongwe">Chongwe</MenuItem>
+                <MenuItem value="Ndola">Ndola</MenuItem>
+                <MenuItem value="Ndola Main">Ndola Main</MenuItem>
+                <MenuItem value="Ndola Main Branch">Ndola Main Branch</MenuItem>
+                <MenuItem value="Ndola Business Centre">Ndola Business Centre</MenuItem>
+                <MenuItem value="Ndola Centre Branch">Ndola Centre Branch</MenuItem>
+                <MenuItem value="Ndola Branch">Ndola Branch</MenuItem>
+                <MenuItem value="Kitwe">Kitwe</MenuItem>
+                <MenuItem value="Kitwe Business Centre">Kitwe Business Centre</MenuItem>
+                <MenuItem value="Mukuba Mall">Mukuba Mall</MenuItem>
+                <MenuItem value="Jacaranda Mall">Jacaranda Mall</MenuItem>
+                <MenuItem value="Kafubu Mall">Kafubu Mall</MenuItem>
+                <MenuItem value="Kitwe Industrial">Kitwe Industrial</MenuItem>
+                <MenuItem value="Chingola">Chingola</MenuItem>
+                <MenuItem value="Chingola & Prestige">Chingola & Prestige</MenuItem>
+                <MenuItem value="Mufulira">Mufulira</MenuItem>
+                <MenuItem value="Mufulira & Prestige">Mufulira & Prestige</MenuItem>
+                <MenuItem value="Luanshya">Luanshya</MenuItem>
+                <MenuItem value="Chililabombwe">Chililabombwe</MenuItem>
+                <MenuItem value="Kalulushi">Kalulushi</MenuItem>
+                <MenuItem value="Kasama">Kasama</MenuItem>
+                <MenuItem value="Kabwe">Kabwe</MenuItem>
+                <MenuItem value="Kabwe & Prestige">Kabwe & Prestige</MenuItem>
+                <MenuItem value="Livingstone">Livingstone</MenuItem>
+                <MenuItem value="Chipata">Chipata</MenuItem>
+                <MenuItem value="Choma">Choma</MenuItem>
+                <MenuItem value="Solwezi">Solwezi</MenuItem>
+                <MenuItem value="Solwezi Main Branch">Solwezi Main Branch</MenuItem>
+                <MenuItem value="City Mall Branch - Solwezi">City Mall Branch - Solwezi</MenuItem>
+                <MenuItem value="Mongu">Mongu</MenuItem>
+                <MenuItem value="Mpika">Mpika</MenuItem>
+                <MenuItem value="Mansa">Mansa</MenuItem>
+                <MenuItem value="Mansa Branch">Mansa Branch</MenuItem>
+                <MenuItem value="Mansa Centre Branch">Mansa Centre Branch</MenuItem>
+                <MenuItem value="Kapiri Mposhi">Kapiri Mposhi</MenuItem>
+                <MenuItem value="Mazabuka">Mazabuka</MenuItem>
+                <MenuItem value="Mbala">Mbala</MenuItem>
+                <MenuItem value="Mbala Branch Zambia">Mbala Branch Zambia</MenuItem>
+                <MenuItem value="Mbala Centre Branch">Mbala Centre Branch</MenuItem>
+                <MenuItem value="Mbala Main Branch">Mbala Main Branch</MenuItem>
+                <MenuItem value="Mkushi">Mkushi</MenuItem>
+                <MenuItem value="Mkushi Branch">Mkushi Branch</MenuItem>
+                <MenuItem value="Nakonde">Nakonde</MenuItem>
+                <MenuItem value="Petauke">Petauke</MenuItem>
+                <MenuItem value="Petauke Branch">Petauke Branch</MenuItem>
+                <MenuItem value="Lundazi">Lundazi</MenuItem>
+                <MenuItem value="Mumbwa">Mumbwa</MenuItem>
+                <MenuItem value="Serenje">Serenje</MenuItem>
+                <MenuItem value="Chinsali">Chinsali</MenuItem>
+                <MenuItem value="Katete">Katete</MenuItem>
+                <MenuItem value="Kalomo">Kalomo</MenuItem>
+                <MenuItem value="Monze">Monze</MenuItem>
+                <MenuItem value="Kafue Road">Kafue Road</MenuItem>
+                <MenuItem value="Society House">Society House</MenuItem>
+                <MenuItem value="Permanent House">Permanent House</MenuItem>
               </FormTextField>
             </Box>
-            <Box><FormTextField name="employerName" control={control} label="Employer" /></Box>
-            <Box><FormTextField name="payrollNumber" control={control} label="Employee/MAN Number" /></Box>
+            <Box><FormTextField name="accountNumber" control={control} label="Account Number" /></Box>
+            <Box>
+              <FormTextField 
+                name="accountType" 
+                control={control} 
+                label="Account Type"
+                select
+              >
+                <MenuItem value="Savings">Savings</MenuItem>
+                <MenuItem value="Current">Current</MenuItem>
+                <MenuItem value="Fixed Deposit">Fixed Deposit</MenuItem>
+              </FormTextField>
+            </Box>
           </Box>
         </Section>
         <Section title="Next of Kin" toggle open={openKin} onToggle={()=>setOpenKin(o=>!o)} subtitle="Emergency contact details">
@@ -261,6 +559,8 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="nextOfKin.phone" control={control} label="Phone Number" /></Box>
             <Box><FormTextField name="nextOfKin.email" control={control} label="Email" /></Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="nextOfKin.address" control={control} label="Address" /></Box>
+            <Box><FormTextField name="nextOfKin.city" control={control} label="City/District" /></Box>
+            <Box><FormTextField name="nextOfKin.province" control={control} label="Province" /></Box>
             <Box><FormNRCField name="nextOfKin.nrc" control={control} label="NRC" /></Box>
             <Box><FormTextField name="nextOfKin.nationality" control={control} label="Nationality" /></Box>
             <Box><FormTextField name="nextOfKin.relationship" control={control} label="Relationship" /></Box>
@@ -272,6 +572,8 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="reference.phone" control={control} label="Phone" /></Box>
             <Box><FormTextField name="reference.email" control={control} label="Email" /></Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="reference.address" control={control} label="Address" /></Box>
+            <Box><FormNRCField name="reference.nrc" control={control} label="NRC" /></Box>
+            <Box><FormTextField name="reference.relationship" control={control} label="Relationship" /></Box>
           </Box>
         </Section>
       </Stack>

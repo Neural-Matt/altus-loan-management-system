@@ -22,7 +22,7 @@ const ReviewStep = React.lazy(() => import('../components/wizard/steps/ReviewSte
 const ConfirmationStep = React.lazy(() => import('../components/wizard/steps/ConfirmationStep').then(m => ({ default: m.ConfirmationStep })));
 
 const WizardContent: React.FC<{ steps:any; validators:any; }> = ({ steps, validators }) => {
-  const { hydrate, customer, loan, documents } = useWizardData();
+  const { hydrate, customer, loan, documents, setLoan } = useWizardData();
   const { submitLoanRequest, state } = useAltus();
   const { push } = useSnackbar();
   const [initialIndex, setInitialIndex] = useState<number | undefined>(undefined);
@@ -37,16 +37,38 @@ const WizardContent: React.FC<{ steps:any; validators:any; }> = ({ steps, valida
         return;
       }
 
-      // Prepare loan request data
+      // Prepare loan request data with ALL required fields from customer form
       const loanRequestData = {
+        // Customer identification
         customerId,
+        identityNo: customer.nrc || state.currentCustomer?.nrc || '',
+        contactNo: customer.phone || state.currentCustomer?.phoneNumber || '',
+        emailId: customer.email || state.currentCustomer?.emailAddress || '',
+        
+        // Employment details
+        employeeNumber: customer.payrollNumber || customer.employerId || '',
+        designation: customer.occupation || '',
+        employmentType: customer.employmentType === 'Permanent' ? '1' : customer.employmentType === 'Contract' ? '2' : '1',
+        
+        // Loan details
         loanAmount: loan.amount || 0,
-        loanTenure: loan.tenureMonths || 0,
+        tenure: loan.tenureMonths || 12,
+        
+        // Salary/Income details
+        grossIncome: customer.salary || 0,
+        netIncome: customer.salary ? customer.salary * 0.7 : 0, // Estimate 70% of gross as net
+        deductions: customer.salary ? customer.salary * 0.3 : 0, // Estimate 30% deductions
+        
+        // Gender
+        gender: customer.gender || state.currentCustomer?.gender || 'Male',
+        
+        // Additional fields (for backward compatibility)
         productCode: loan.productCode || 'INSTANT_SALARY',
         purpose: customer.purpose || 'Personal Use',
         monthlyInstallment: loan.emiResult?.monthlyInstallment || 0,
         totalInterest: loan.emiResult?.totalInterest || 0,
         totalPayable: loan.emiResult?.totalPayable || 0,
+        
         // Document IDs from uploaded documents
         documentIds: documents
           .filter(doc => doc.id && doc.status === 'uploaded')
@@ -55,10 +77,17 @@ const WizardContent: React.FC<{ steps:any; validators:any; }> = ({ steps, valida
 
       push('Submitting loan request...', 'info');
       
-      // Submit the loan request
-      await submitLoanRequest(loanRequestData);
+      // Submit the loan request and get the ApplicationNumber
+      const result = await submitLoanRequest(loanRequestData);
       
-      push('Loan request submitted successfully!', 'success');
+      // Store the ApplicationNumber in loan data
+      if (result && result.applicationNumber) {
+        setLoan({ applicationNumber: result.applicationNumber });
+        push(`Loan request submitted successfully! Application Number: ${result.applicationNumber}`, 'success');
+      } else {
+        push('Loan request submitted successfully!', 'success');
+      }
+      
       clearDraft(); // Clear the draft after successful submission
       
     } catch (error) {

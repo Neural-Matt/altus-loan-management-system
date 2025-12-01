@@ -39,38 +39,117 @@ export const useUATWorkflow = () => {
   const submitLoanApplication = useCallback(async (): Promise<string> => {
     console.log('🚀 Starting UAT Loan Application Workflow...');
 
-    // Step 1: Ensure customer is created
+    // Check if customer was created (optional now)
     const customerId = customer.customerId || state.currentCustomer?.customerId;
+    
+    // Allow proceeding without customer creation - use form data directly
     if (!customerId) {
-      throw new Error('Customer must be created first. Please complete the Customer Information step.');
+      console.log('⚠️ No CustomerID found - proceeding with form data only (TypeOfCustomer: New)');
+    } else {
+      console.log('✅ Customer ID available:', customerId);
     }
 
-    console.log('✅ Customer ID available:', customerId);
+    // Validate required customer data from form
+    if (!customer.firstName || !customer.lastName) {
+      throw new Error('Please complete Step 1: Customer Information (fill in your name and basic details) before uploading documents.');
+    }
+
+    if (!customer.nrc || !customer.phone || !customer.email) {
+      throw new Error('Please complete Step 1: Customer Information (fill in NRC, phone, and email) before uploading documents.');
+    }
+
+    // Validate loan amount is provided
+    if (!loan.amount || loan.amount <= 0) {
+      throw new Error('Please complete Step 2: Loan Calculator and specify a loan amount before uploading documents.');
+    }
 
     // Step 2: Submit loan request to get ApplicationNumber
+    // Using TypeOfCustomer "New" with all customer details from form
+    // This allows creating loan application even without prior customer creation
     const loanRequestData = {
-      customerId: customerId,
-      identityNo: customer.nrc || state.currentCustomer?.nrc,
-      contactNo: customer.phone || state.currentCustomer?.phoneNumber,
-      emailId: customer.email || state.currentCustomer?.emailAddress,
-      tenureMonths: loan.tenureMonths || 12,
-      loanAmount: loan.amount || 50000,
-      employerName: customer.employerName || '',
-      payrollNo: customer.payrollNumber || '',
-      netSalary: 15000, // TODO: Get from form
-      grossSalary: 18000, // TODO: Get from form
-      gender: customer.gender || 'Male'
+      TypeOfCustomer: "New",
+      customerId: customerId || "", // Empty if no customer created yet
+      
+      // Personal details for New customer (from form data)
+      firstName: customer.firstName || "",
+      middleName: "",
+      lastName: customer.lastName || "",
+      dateOfBirth: customer.dateOfBirth || "",
+      
+      // Identity and contact details
+      identityNo: customer.nrc || "",
+      contactNo: customer.phone || "",
+      emailId: customer.email || "",
+      
+      // Address Information
+      primaryAddress: customer.address || "",
+      provinceName: customer.province || "",
+      districtName: customer.city || "",
+      countryName: "Zambia",
+      postalcode: customer.postalCode || "",
+      
+      // Employment details
+      employeeNumber: customer.payrollNumber || customer.employerId || "",
+      designation: customer.occupation || "",
+      employerName: customer.employerName || "",
+      employmentType: customer.employmentType === "Permanent" ? "1" : customer.employmentType === "Contract" ? "2" : "1",
+      
+      // Loan details
+      tenure: loan.tenureMonths || 12,
+      loanAmount: loan.amount,
+      grossIncome: customer.salary || 0,
+      netIncome: customer.salary ? customer.salary * 0.85 : 0,
+      deductions: customer.salary ? customer.salary * 0.15 : 0,
+      gender: customer.gender || 'Male',
+      
+      // Bank Details
+      financialInstitutionName: customer.bankName || "",
+      financialInstitutionBranchName: customer.bankBranch || "",
+      accountNumber: customer.accountNumber || "",
+      accountType: customer.accountType || "",
+      
+      // Reference/Referrer Details
+      referrerName: customer.reference?.name || "",
+      referrerNRC: customer.reference?.nrc || "",
+      referrerContactNo: customer.reference?.phone || "",
+      referrerPhysicalAddress: customer.reference?.address || "",
+      referrerRelationType: customer.reference?.relationship || "",
+      
+      // Next of Kin Details
+      kinName: customer.nextOfKin ? `${customer.nextOfKin.firstName || ''} ${customer.nextOfKin.lastName || ''}`.trim() : "",
+      kinNRC: customer.nextOfKin?.nrc || "",
+      kinRelationship: customer.nextOfKin?.relationship || "",
+      kinMobileNo: customer.nextOfKin?.phone || "",
+      kinAddress: customer.nextOfKin?.address || "",
+      kinProvinceName: customer.nextOfKin?.province || "",
+      kinDistrictName: customer.nextOfKin?.city || "",
+      kinCountryName: "Zambia"
     };
 
-    console.log('📋 Submitting loan request...', loanRequestData);
+    console.log('📋 Submitting loan request...', {
+      customerId: customerId || '(none - using form data)',
+      identityNo: loanRequestData.identityNo,
+      loanAmount: loanRequestData.loanAmount,
+      tenure: loanRequestData.tenure,
+      hasPersonalDetails: true,
+      hasAddressDetails: !!(loanRequestData.primaryAddress && loanRequestData.provinceName),
+      hasBankDetails: !!(loanRequestData.financialInstitutionName && loanRequestData.accountNumber),
+      hasNextOfKin: !!loanRequestData.kinName,
+      hasReference: !!loanRequestData.referrerName
+    });
     const loanResult = await altusApi.submitLoanRequest(loanRequestData) as UATResponse<LoanRequestResponse>;
     
+    console.log('📋 Full Loan Request Response:', loanResult);
+    
     if (loanResult.executionStatus !== 'Success' || !loanResult.outParams?.ApplicationNumber) {
-      throw new Error(`Loan request failed: ${loanResult.executionMessage}`);
+      console.error('❌ Loan request failed:', loanResult);
+      throw new Error(`Loan request failed: ${loanResult.executionMessage || 'No ApplicationNumber returned'}`);
     }
 
     const applicationNumber = loanResult.outParams.ApplicationNumber;
     console.log('✅ Loan request submitted. ApplicationNumber:', applicationNumber);
+    console.log('⏳ Note: Backend requires manual approval before ApplicationNumber becomes active for document uploads');
+    console.log('📝 Documents will be stored locally and uploaded automatically after approval');
 
     return applicationNumber;
   }, [customer, loan, state]);
