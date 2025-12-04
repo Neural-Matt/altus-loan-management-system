@@ -47,35 +47,52 @@ export const useUATWorkflow = () => {
       
       // Prepare customer creation data
       const customerRequest = {
-        firstName: customer.firstName,
-        lastName: customer.lastName || customer.firstName, // Use firstName if lastName is empty
-        nrc: customer.nrc,
-        nrcIssueDate: customer.nrcIssueDate,
-        phoneNumber: customer.phone,
-        emailAddress: customer.email,
-        dateOfBirth: customer.dateOfBirth,
-        title: customer.title,
-        gender: customer.gender as "Male" | "Female",
+        firstName: customer.firstName || '',
+        lastName: customer.lastName || customer.firstName || '', // Use firstName if lastName is empty
+        nrc: customer.nrc || '',
+        nrcIssueDate: customer.nrcIssueDate || '',
+        phoneNumber: customer.phone || '',
+        emailAddress: customer.email || '',
+        dateOfBirth: customer.dateOfBirth || '',
+        title: customer.title || '',
+        gender: (customer.gender as "Male" | "Female") || "Male",
         nationality: customer.nationality === 'Other' ? customer.otherNationality || '' : customer.nationality || 'Zambian',
+        maritalStatus: customer.maritalStatus || 'Single',
         address: {
-          street: customer.address,
-          city: customer.city,
-          province: customer.province,
+          street: customer.address || '',
+          city: customer.city || '',
+          province: customer.province || '',
           postalCode: customer.postalCode || "",
           country: "Zambia"
         },
         preferredBranch: customer.preferredBranch,
+        employment: {
+          employerId: customer.employerId || "EMP001",
+          employerName: customer.employerName || '',
+          employerCode: customer.payrollNumber || '',
+          position: customer.occupation || 'Employee',
+          salary: customer.salary || 0,
+          employmentDate: customer.employmentDate || '',
+          employmentType: (customer.employmentType as "Permanent" | "Contract" | "Temporary") || "Permanent"
+        },
+        nextOfKin: {
+          firstName: customer.nextOfKin?.firstName || '',
+          lastName: customer.nextOfKin?.lastName || '',
+          relationship: customer.nextOfKin?.relationship || '',
+          phoneNumber: customer.nextOfKin?.phone || '',
+          address: customer.nextOfKin?.address || ''
+        },
         bankDetails: {
-          bankName: customer.bankName,
-          accountNumber: customer.accountNumber,
-          accountType: customer.accountType,
-          branchCode: customer.bankBranch
+          bankName: customer.bankName || '',
+          accountNumber: customer.accountNumber || '',
+          accountType: customer.accountType || '',
+          branchCode: customer.bankBranch || ''
         }
       };
 
       try {
         const createdCustomer = await altusApi.createRetailCustomer(customerRequest);
-        customerId = createdCustomer.outParams?.CustomerId || createdCustomer.customerId;
+        customerId = createdCustomer.outParams?.CustomerID;
         
         if (!customerId) {
           throw new Error('Customer creation succeeded but no CustomerID returned');

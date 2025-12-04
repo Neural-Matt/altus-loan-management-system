@@ -43,6 +43,7 @@ export interface CustomerInput {
   city?: string;
   province?: string;
   postalCode?: string;
+  preferredBranch?: string;
   
   // Employment
   employerName?: string;
