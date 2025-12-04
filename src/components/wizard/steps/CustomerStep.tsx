@@ -9,6 +9,16 @@ import { useWizardData } from '../WizardDataContext';
 import { useAltus } from '../../../context/AltusContext';
 import { useSnackbar } from '../../feedback/SnackbarProvider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {
+  PROVINCES,
+  DISTRICTS_BY_PROVINCE,
+  BANKS,
+  BRANCHES_BY_BANK,
+  ACCOUNT_TYPES,
+  RELATIONSHIPS,
+  TITLES,
+  GENDERS
+} from '../../../constants/uatDropdownValues';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -17,7 +27,7 @@ export const CustomerStep: React.FC = () => {
   const [openKin, setOpenKin] = React.useState(true);
   const [openRef, setOpenRef] = React.useState(false);
 
-  const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
+  const { control, handleSubmit, reset, watch, resetField, formState: { errors }, trigger } = useForm<CustomerFormValues>({
     defaultValues: {
       firstName: customer.firstName || '',
       lastName: customer.lastName || '',
@@ -57,6 +67,22 @@ export const CustomerStep: React.FC = () => {
 
   // Watch nationality field to conditionally show other nationality input
   const nationalityValue = watch('nationality');
+  const provinceValue = watch('province');
+  const bankNameValue = watch('bankName');
+
+  // Reset district when province changes
+  useEffect(() => {
+    if (provinceValue) {
+      resetField('city');
+    }
+  }, [provinceValue, resetField]);
+
+  // Reset branch when bank changes
+  useEffect(() => {
+    if (bankNameValue) {
+      resetField('bankBranch');
+    }
+  }, [bankNameValue, resetField]);
 
   useEffect(() => {
     reset({
@@ -237,11 +263,9 @@ export const CustomerStep: React.FC = () => {
                 label="Title"
                 select
               >
-                <MenuItem value="Mr">Mr</MenuItem>
-                <MenuItem value="Mrs">Mrs</MenuItem>
-                <MenuItem value="Miss">Miss</MenuItem>
-                <MenuItem value="Ms">Ms</MenuItem>
-                <MenuItem value="Dr">Dr</MenuItem>
+                {TITLES.map(title => (
+                  <MenuItem key={title} value={title}>{title}</MenuItem>
+                ))}
               </FormTextField>
             </Box>
             <Box></Box>
@@ -259,13 +283,38 @@ export const CustomerStep: React.FC = () => {
                 label="Gender"
                 select
               >
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
+                {GENDERS.map(gender => (
+                  <MenuItem key={gender} value={gender}>{gender}</MenuItem>
+                ))}
               </FormTextField>
             </Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="address" control={control} label="Residential Address" /></Box>
-            <Box><FormTextField name="city" control={control} label="City/District" /></Box>
-            <Box><FormTextField name="province" control={control} label="Province" /></Box>
+            <Box>
+              <FormTextField 
+                name="city" 
+                control={control} 
+                label="City/District"
+                select
+                disabled={!provinceValue}
+                helperText={!provinceValue ? "Please select province first" : ""}
+              >
+                {(DISTRICTS_BY_PROVINCE[provinceValue] || []).map(district => (
+                  <MenuItem key={district} value={district}>{district}</MenuItem>
+                ))}
+              </FormTextField>
+            </Box>
+            <Box>
+              <FormTextField 
+                name="province" 
+                control={control} 
+                label="Province"
+                select
+              >
+                {PROVINCES.map(province => (
+                  <MenuItem key={province} value={province}>{province}</MenuItem>
+                ))}
+              </FormTextField>
+            </Box>
             <Box><FormTextField name="postalCode" control={control} label="Postal Code (Optional)" /></Box>
             <Box>
               <FormTextField 
@@ -400,37 +449,12 @@ export const CustomerStep: React.FC = () => {
               <FormTextField 
                 name="bankName" 
                 control={control} 
-                label="Bank Name"
+                label="Bank / Financial Institution"
                 select
               >
-                <MenuItem value="AB Bank">AB Bank</MenuItem>
-                <MenuItem value="Access Bank">Access Bank</MenuItem>
-                <MenuItem value="Access Bank Zambia Limited">Access Bank Zambia Limited</MenuItem>
-                <MenuItem value="Atlas Mara Bank">Atlas Mara Bank</MenuItem>
-                <MenuItem value="Bank of China">Bank of China</MenuItem>
-                <MenuItem value="ABSA Zambia">ABSA Zambia</MenuItem>
-                <MenuItem value="Absa">Absa</MenuItem>
-                <MenuItem value="Cavmont Bank">Cavmont Bank</MenuItem>
-                <MenuItem value="Citibank Zambia">Citibank Zambia</MenuItem>
-                <MenuItem value="Ecobank">Ecobank</MenuItem>
-                <MenuItem value="First Alliance Bank">First Alliance Bank</MenuItem>
-                <MenuItem value="First Capital Bank">First Capital Bank</MenuItem>
-                <MenuItem value="First National Bank">First National Bank</MenuItem>
-                <MenuItem value="Indo Zambia Bank">Indo Zambia Bank</MenuItem>
-                <MenuItem value="Intermarket Banking Corporation">Intermarket Banking Corporation</MenuItem>
-                <MenuItem value="Investrust Bank">Investrust Bank</MenuItem>
-                <MenuItem value="Stanbic Bank Zambia">Stanbic Bank Zambia</MenuItem>
-                <MenuItem value="Standard Chartered Bank Zambia">Standard Chartered Bank Zambia</MenuItem>
-                <MenuItem value="The United Bank of Zambia">The United Bank of Zambia</MenuItem>
-                <MenuItem value="United Bank for Africa">United Bank for Africa</MenuItem>
-                <MenuItem value="Zambia Industrial Commercial Bank">Zambia Industrial Commercial Bank</MenuItem>
-                <MenuItem value="Zambia National Commercial Bank">Zambia National Commercial Bank</MenuItem>
-                <MenuItem value="New Bank">New Bank</MenuItem>
-                <MenuItem value="National Savings and Credit Bank">National Savings and Credit Bank</MenuItem>
-                <MenuItem value="Natsave">Natsave</MenuItem>
-                <MenuItem value="ZNBS">ZNBS</MenuItem>
-                <MenuItem value="Bayport Financial Services">Bayport Financial Services</MenuItem>
-                <MenuItem value="FAB">FAB</MenuItem>
+                {BANKS.map(bank => (
+                  <MenuItem key={bank} value={bank}>{bank}</MenuItem>
+                ))}
               </FormTextField>
             </Box>
             <Box>
@@ -439,44 +463,12 @@ export const CustomerStep: React.FC = () => {
                 control={control} 
                 label="Bank Branch"
                 select
+                disabled={!bankNameValue}
+                helperText={!bankNameValue ? "Please select bank first" : ""}
               >
-                <MenuItem value="Head Office">Head Office</MenuItem>
-                <MenuItem value="Commercial Suite">Commercial Suite</MenuItem>
-                <MenuItem value="Industrial">Industrial</MenuItem>
-                <MenuItem value="FNB Operation Centre">FNB Operation Centre</MenuItem>
-                <MenuItem value="Electronic Banking">Electronic Banking</MenuItem>
-                <MenuItem value="Treasury">Treasury</MenuItem>
-                <MenuItem value="Manda Hill">Manda Hill</MenuItem>
-                <MenuItem value="Vehicle and Asset Finance">Vehicle and Asset Finance</MenuItem>
-                <MenuItem value="Makeni Mall">Makeni Mall</MenuItem>
-                <MenuItem value="Home Loan">Home Loan</MenuItem>
-                <MenuItem value="Branchless Banking">Branchless Banking</MenuItem>
-                <MenuItem value="Electronic Wallet">Electronic Wallet</MenuItem>
-                <MenuItem value="CIB Corporate">CIB Corporate</MenuItem>
-                <MenuItem value="Premier Banking">Premier Banking</MenuItem>
-                <MenuItem value="Agriculture Centre">Agriculture Centre</MenuItem>
-                <MenuItem value="Corporate Investment Banking">Corporate Investment Banking</MenuItem>
-                <MenuItem value="Chilenje">Chilenje</MenuItem>
-                <MenuItem value="Cash Centre">Cash Centre</MenuItem>
-                <MenuItem value="PHI Branch">PHI Branch</MenuItem>
-                <MenuItem value="Cairo">Cairo</MenuItem>
-                <MenuItem value="Kabulonga">Kabulonga</MenuItem>
-                <MenuItem value="Ndola">Ndola</MenuItem>
-                <MenuItem value="Jacaranda Mall">Jacaranda Mall</MenuItem>
-                <MenuItem value="Kitwe">Kitwe</MenuItem>
-                <MenuItem value="Mukuba Mall">Mukuba Mall</MenuItem>
-                <MenuItem value="Kitwe Industrial">Kitwe Industrial</MenuItem>
-                <MenuItem value="Chingola">Chingola</MenuItem>
-                <MenuItem value="Mufulira">Mufulira</MenuItem>
-                <MenuItem value="Luanshya">Luanshya</MenuItem>
-                <MenuItem value="Kabwe">Kabwe</MenuItem>
-                <MenuItem value="Livingstone">Livingstone</MenuItem>
-                <MenuItem value="Chipata">Chipata</MenuItem>
-                <MenuItem value="Choma">Choma</MenuItem>
-                <MenuItem value="Mkushi">Mkushi</MenuItem>
-                <MenuItem value="Solwezi">Solwezi</MenuItem>
-                <MenuItem value="Kalumbila">Kalumbila</MenuItem>
-                <MenuItem value="Mazabuka">Mazabuka</MenuItem>
+                {(BRANCHES_BY_BANK[bankNameValue] || []).map(branch => (
+                  <MenuItem key={branch} value={branch}>{branch}</MenuItem>
+                ))}
               </FormTextField>
             </Box>
             <Box><FormTextField name="accountNumber" control={control} label="Account Number" /></Box>
@@ -487,9 +479,9 @@ export const CustomerStep: React.FC = () => {
                 label="Account Type"
                 select
               >
-                <MenuItem value="Savings">Savings</MenuItem>
-                <MenuItem value="Current">Current</MenuItem>
-                <MenuItem value="Fixed Deposit">Fixed Deposit</MenuItem>
+                {ACCOUNT_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>{type}</MenuItem>
+                ))}
               </FormTextField>
             </Box>
           </Box>
@@ -505,7 +497,18 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="nextOfKin.province" control={control} label="Province" /></Box>
             <Box><FormNRCField name="nextOfKin.nrc" control={control} label="NRC" /></Box>
             <Box><FormTextField name="nextOfKin.nationality" control={control} label="Nationality" /></Box>
-            <Box><FormTextField name="nextOfKin.relationship" control={control} label="Relationship" /></Box>
+            <Box>
+              <FormTextField 
+                name="nextOfKin.relationship" 
+                control={control} 
+                label="Relationship"
+                select
+              >
+                {RELATIONSHIPS.map(rel => (
+                  <MenuItem key={rel} value={rel}>{rel}</MenuItem>
+                ))}
+              </FormTextField>
+            </Box>
           </Box>
         </Section>
         <Section title="Reference" toggle open={openRef} onToggle={()=>setOpenRef(o=>!o)} subtitle="Professional or character reference">
