@@ -227,10 +227,10 @@ export const ReviewStep: React.FC = () => {
               <Typography variant="body2"><strong>Email:</strong> {customer.email || '-'}</Typography>
               <Typography variant="body2"><strong>Phone:</strong> {customer.phone || '-'}</Typography>
               <Typography variant="body2"><strong>NRC:</strong> {customer.nrc || '-'}</Typography>
-              {customer.bankName && <Typography variant="body2"><strong>Bank:</strong> {customer.bankName}</Typography>}
-              {customer.accountNumber && <Typography variant="body2"><strong>Account Number:</strong> {customer.accountNumber}</Typography>}
-              {customer.bankBranch && <Typography variant="body2"><strong>Branch:</strong> {customer.bankBranch}</Typography>}
-              {customer.accountType && <Typography variant="body2"><strong>Account Type:</strong> {customer.accountType}</Typography>}
+              <Typography variant="body2"><strong>Bank:</strong> {customer.bankName || '-'}</Typography>
+              <Typography variant="body2"><strong>Account Number:</strong> {customer.accountNumber || '-'}</Typography>
+              <Typography variant="body2"><strong>Branch:</strong> {customer.bankBranch || '-'}</Typography>
+              <Typography variant="body2"><strong>Account Type:</strong> {customer.accountType || '-'}</Typography>
             </Stack>
           </SectionCard>
         </Box>
