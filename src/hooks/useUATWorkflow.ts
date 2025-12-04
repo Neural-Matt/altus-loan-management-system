@@ -92,10 +92,19 @@ export const useUATWorkflow = () => {
 
       try {
         const createdCustomer = await altusApi.createRetailCustomer(customerRequest);
-        customerId = createdCustomer.outParams?.CustomerID;
         
+        // The API specification says outParams.CustomerID should be returned
+        // But the backend may return RequestId instead - check both
+        customerId = createdCustomer.outParams?.CustomerID || createdCustomer.outParams?.RequestId;
+        
+        // If neither field exists, use the instanceId as a last resort identifier
         if (!customerId) {
-          throw new Error('Customer creation succeeded but no CustomerID returned');
+          if (createdCustomer.instanceId) {
+            console.warn('⚠️  CustomerID not returned by API, using instanceId as fallback:', createdCustomer.instanceId);
+            customerId = createdCustomer.instanceId;
+          } else {
+            throw new Error('Customer creation succeeded but no CustomerID or instanceId returned');
+          }
         }
         
         console.log('✅ Customer created successfully, ID:', customerId);

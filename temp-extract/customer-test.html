@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Altus Customer Creation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .section { border: 1px solid #ccc; padding: 15px; border-radius: 8px; }
+        h2 { margin-top: 0; color: #011A41; }
+        button { background: #011A41; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #023365; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 600px; overflow-y: auto; }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+    </style>
+</head>
+<body>
+    <h1>Altus Customer Creation API Test</h1>
+    
+    <div class="container">
+        <div class="section">
+            <h2>Test Customer Data</h2>
+            <textarea id="customerData" rows="30" style="width: 100%; font-family: monospace;">
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "nrc": "123456/78/9",
+  "nrcIssueDate": "2015-01-15",
+  "title": "Mr",
+  "phoneNumber": "+260977123456",
+  "emailAddress": "test@example.com",
+  "dateOfBirth": "1990-01-15",
+  "gender": "Male",
+  "nationality": "Zambian",
+  "maritalStatus": "Single",
+  "address": {
+    "street": "123 Main Street",
+    "city": "Lusaka",
+    "province": "Lusaka",
+    "postalCode": "",
+    "country": "Zambia"
+  },
+  "employment": {
+    "employerId": "EMP001",
+    "employerName": "Test Company",
+    "employerCode": "TC001",
+    "position": "Software Developer",
+    "salary": 15000,
+    "employmentDate": "2020-01-01",
+    "employmentType": "Permanent"
+  },
+  "nextOfKin": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "relationship": "Sister",
+    "phoneNumber": "+260977654321",
+    "address": "456 Test Street"
+  },
+  "bankDetails": {
+    "bankName": "Indo Zambia Bank",
+    "accountNumber": "1234567890",
+    "accountType": "Savings",
+    "branchCode": "Lusaka"
+  }
+}
+            </textarea>
+            <br><br>
+            <button onclick="testCustomerCreation()">Create Customer</button>
+        </div>
+        
+        <div class="section">
+            <h2>API Response</h2>
+            <div id="status"></div>
+            <pre id="response"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://3.6.174.212:5011/API/CustomerServices/RetailCustomer';
+        const BEARER_TOKEN = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsIng1dCI6Ik1EZzVZV0pqTXpBek5tRTNNVFl5T0dGaE5XTm1ORGN3TW1FeU1EaGhOR1ptWW1ZNE9EZzBaQSJ9.eyJhdWQiOiJodHRwOi8vb3JnLndzbzIuYXBpbWd0L2dhdGV3YXkiLCJzdWIiOiJhZG1pbkBjYXJib24uc3VwZXIiLCJhcHBsaWNhdGlvbiI6eyJvd25lciI6ImFkbWluIiwidGllclF1b3RhVHlwZSI6InJlcXVlc3RDb3VudCIsInRpZXIiOiJVbmxpbWl0ZWQiLCJuYW1lIjoiRGVmYXVsdEFwcGxpY2F0aW9uIiwiaWQiOjEsInV1aWQiOm51bGx9LCJzY29wZSI6ImFtX2FwcGxpY2F0aW9uX3Njb3BlIGRlZmF1bHQiLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo5NDQzL29hdXRoMi90b2tlbiIsInRpZXJJbmZvIjp7IlVubGltaXRlZCI6eyJ0aWVyUXVvdGFUeXBlIjoicmVxdWVzdENvdW50Iiwic3RvcE9uUXVvdGFSZWFjaCI6dHJ1ZSwic3Bpa2VBcnJlc3RMaW1pdCI6MCwic3Bpa2VBcnJlc3RVbml0IjpudWxsfX0sImtleXR5cGUiOiJQUk9EVUNUSU9OIiwic3Vic2NyaWJlZEFQSXMiOltdLCJjb25zdW1lcktleSI6IkU2alA2aVdYVjRXbEd6Y0pnUlJFd0pCcXN0UWEiLCJleHAiOjQ4MzQzODM0ODcsImlhdCI6MTY4MDc4MzQ4NywianRpIjoiNmEzOGY0MzMtOTA2ZC00ZmU5LTliODUtYzBmMGU5M2E5MGJmIn0.DUuK_hqZJiY7S1iM9RRRJ04pBz_M3IW5z14wEoqVlGPY2YSCCJOOJMOqjWEPKq4m8LlDC4JpFOjCNNBNj3oXPa1-mz3xKEqNjnxEjf2q8pBRbW5STKvJ9n4PUuP7xmhYpOr0PNQJJqbvE8YpqJYa5pKOJ_N1eBMPp8YpRpHJK9pKJOqjWEPKq4m8LlDC4JpFOjCNNBNj3oXPa1-mz3xKEqNjnxEjf2q8pBRbW5STKvJ9n4PUuP7xmhYpOr0PNQJJqbvE8YpqJYa5pKOJ_N1eBMPp8YpRpHJK9pKJOqjWEPKq4m8LlDC4JpFOjCNNBNj3oXPa1-mz3xKEqNjnxEjf2q8pBRbW5STKvJ9n4PUuP7xmhYpOr0PNQJJqbvE8YpqJYa5pKOJ_N1eBMPp8YpRpHJK9w';
+
+        async function testCustomerCreation() {
+            const statusDiv = document.getElementById('status');
+            const responseDiv = document.getElementById('response');
+            
+            try {
+                statusDiv.innerHTML = '<p>⏳ Sending request...</p>';
+                responseDiv.textContent = '';
+                
+                const customerData = JSON.parse(document.getElementById('customerData').value);
+                
+                // Transform to UAT API format
+                const uatRequest = {
+                    body: {
+                        Command: "Create",
+                        FirstName: customerData.firstName,
+                        MiddleName: "",
+                        LastName: customerData.lastName || customerData.firstName,
+                        CustomerStatus: "Active",
+                        NRCIssueDate: customerData.nrcIssueDate,
+                        UpdatedBy: "WebPortal",
+                        PrimaryAddress: customerData.address.street,
+                        ProvinceName: customerData.address.province,
+                        DistrictName: customerData.address.city,
+                        CountryName: customerData.address.country,
+                        Postalcode: customerData.address.postalCode || "",
+                        NRCNumber: customerData.nrc,
+                        ContactNo: customerData.phoneNumber,
+                        EmailID: customerData.emailAddress,
+                        BranchName: customerData.address.province,
+                        GenderName: customerData.gender,
+                        Title: customerData.title,
+                        DOB: customerData.dateOfBirth,
+                        FinancialInstitutionName: customerData.bankDetails.bankName,
+                        FinancialInstitutionBranchName: customerData.bankDetails.branchCode,
+                        AccountNumber: customerData.bankDetails.accountNumber,
+                        AccountType: customerData.bankDetails.accountType
+                    }
+                };
+                
+                console.log('Request:', uatRequest);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${BEARER_TOKEN}`
+                    },
+                    body: JSON.stringify(uatRequest)
+                });
+                
+                const data = await response.json();
+                console.log('Response:', data);
+                
+                if (data.executionStatus === 'Success') {
+                    statusDiv.innerHTML = `<p class="success">✅ Success! Customer ID: ${data.outParams?.CustomerID || 'N/A'}</p>`;
+                } else {
+                    statusDiv.innerHTML = `<p class="error">❌ Failed: ${data.executionMessage}</p>`;
+                }
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+                responseDiv.textContent = error.stack || error.toString();
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

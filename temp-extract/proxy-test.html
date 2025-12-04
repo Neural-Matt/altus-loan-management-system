@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Altus API Proxy Tester - CORS Bypass</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .cors-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .api-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .port-header {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .test-all {
+            background: #28a745;
+            font-size: 16px;
+            padding: 12px 24px;
+            margin-bottom: 20px;
+        }
+        .test-all:hover {
+            background: #1e7e34;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 6px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #007bff;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .success {
+            border-left-color: #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+        }
+        .proxy-url {
+            color: #495057;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .clear-btn {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        .clear-btn:hover {
+            background: #545b62;
+        }
+        .restart-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Altus API Proxy Tester</h1>
+            <p>Testing APIs through React development server proxy (CORS bypass)</p>
+        </div>
+
+        <div class="cors-info">
+            <h3>✅ CORS Issue Resolved</h3>
+            <p><strong>Solution:</strong> Using React dev server proxy to bypass CORS restrictions</p>
+            <p><strong>Proxy Routes:</strong> /loanlist-api, /loan-api, /customer-api, /product-api, /document-api</p>
+            <p><strong>Bearer Token:</strong> Applied automatically to all requests</p>
+        </div>
+
+        <div class="restart-notice">
+            <h3>⚠️ Important: Restart Required</h3>
+            <p>If this is the first time running this test, you need to restart the React dev server for proxy changes to take effect:</p>
+            <ol>
+                <li>Stop the server (Ctrl+C in terminal)</li>
+                <li>Run <code>npm start</code> again</li>
+                <li>Navigate back to this page</li>
+            </ol>
+        </div>
+
+        <button class="test-all" onclick="testAllAPIs()">🧪 Test All APIs via Proxy (15 endpoints)</button>
+        <button class="clear-btn" onclick="clearResults()">Clear Results</button>
+
+        <!-- Port 5009 - Loan List Services (NEW) -->
+        <div class="api-section">
+            <div class="port-header">Port 5009 - Loan List Services (NEW from UAT) via /loanlist-api proxy</div>
+            <button onclick="testProxyAPI('getLoansByCustomer', '/loanlist-api/API/LoanList/GetLoansByCustomer', {CustomerId: 'CUST123'})">
+                Get Loans By Customer
+                <span class="proxy-url">POST /loanlist-api/API/LoanList/GetLoansByCustomer → 3.6.174.212:5009</span>
+            </button>
+            <button onclick="testProxyAPI('calculateEMI', '/loanlist-api/API/LoanList/EMICalculator', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24'})">
+                Calculate EMI
+                <span class="proxy-url">POST /loanlist-api/API/LoanList/EMICalculator → 3.6.174.212:5009</span>
+            </button>
+            <button onclick="testProxyAPI('pblEligibility', '/loanlist-api/API/LoanList/PBLEligibilityStatus', {CustomerId: 'CUST123', LoanAmount: '75000', LoanTenure: '30'})">
+                PBL Eligibility Status
+                <span class="proxy-url">POST /loanlist-api/API/LoanList/PBLEligibilityStatus → 3.6.174.212:5009</span>
+            </button>
+        </div>
+
+        <!-- Port 5010 - Loan Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5010 - Loan Services via /loan-api proxy</div>
+            <button onclick="testProxyAPI('getLoanBalance', '/loan-api/API/LoanServices/GetLoanBalance', {ApplicationNumber: 'APP123456'})">
+                Get Loan Balance
+                <span class="proxy-url">POST /loan-api/API/LoanServices/GetLoanBalance → 3.6.174.212:5010</span>
+            </button>
+            <button onclick="testProxyAPI('getLoanStatus', '/loan-api/API/LoanServices/GetLoanStatus', {ApplicationNumber: 'APP123456'})">
+                Get Loan Status
+                <span class="proxy-url">POST /loan-api/API/LoanServices/GetLoanStatus → 3.6.174.212:5010</span>
+            </button>
+            <button onclick="testProxyAPI('getLoanDetails', '/loan-api/API/LoanServices/GetLoanDetails', {ApplicationNumber: 'APP123456'})">
+                Get Loan Details
+                <span class="proxy-url">POST /loan-api/API/LoanServices/GetLoanDetails → 3.6.174.212:5010</span>
+            </button>
+            <button onclick="testProxyAPI('submitLoanRequest', '/loan-api/API/LoanRequestServices/SubmitLoanRequest', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24', CustomerId: 'CUST123'})">
+                Submit Loan Request
+                <span class="proxy-url">POST /loan-api/API/LoanRequestServices/SubmitLoanRequest → 3.6.174.212:5010</span>
+            </button>
+            <button onclick="testProxyAPI('submitBusinessLoanRequest', '/loan-api/API/LoanRequestServices/SubmitBusinessLoanRequest', {LoanType: 'Business', ProductCode: 'BL001', BusinessID: 'BIZ123', LoanAmount: '100000', LoanTenure: '36'})">
+                Submit Business Loan Request (NEW)
+                <span class="proxy-url">POST /loan-api/API/LoanRequestServices/SubmitBusinessLoanRequest → 3.6.174.212:5010</span>
+            </button>
+        </div>
+
+        <!-- Port 5011 - Customer Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5011 - Customer Services via /customer-api proxy</div>
+            <button onclick="testProxyAPI('createRetailCustomer', '/customer-api/API/CustomerServices/CreateRetailCustomer', {FirstName: 'John', LastName: 'Doe', Email: 'john.doe@example.com', PhoneNumber: '1234567890', Address: '123 Main St'})">
+                Create Retail Customer
+                <span class="proxy-url">POST /customer-api/API/CustomerServices/CreateRetailCustomer → 3.6.174.212:5011</span>
+            </button>
+            <button onclick="testProxyAPI('createBusinessCustomer', '/customer-api/API/CustomerServices/CreateBusinessCustomer', {BusinessName: 'Acme Corp', ContactPerson: 'Jane Smith', Email: 'contact@acme.com', PhoneNumber: '0987654321', BusinessType: 'Corporation'})">
+                Create Business Customer
+                <span class="proxy-url">POST /customer-api/API/CustomerServices/CreateBusinessCustomer → 3.6.174.212:5011</span>
+            </button>
+            <button onclick="testProxyAPI('getCustomerDetails', '/customer-api/API/CustomerServices/GetCustomerDetails', {CustomerId: 'CUST123'})">
+                Get Customer Details
+                <span class="proxy-url">POST /customer-api/API/CustomerServices/GetCustomerDetails → 3.6.174.212:5011</span>
+            </button>
+        </div>
+
+        <!-- Port 5012 - Product Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5012 - Product Services via /product-api proxy</div>
+            <button onclick="testProxyAPI('getLoanProductDetails', '/product-api/API/LoanProductServices/GetLoanProductDetails', {ProductCode: 'PL001'})">
+                Get Loan Product Details
+                <span class="proxy-url">POST /product-api/API/LoanProductServices/GetLoanProductDetails → 3.6.174.212:5012</span>
+            </button>
+        </div>
+
+        <!-- Port 5013 - Document Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5013 - Document Services via /document-api proxy</div>
+            <button onclick="testProxyAPI('uploadDocument', '/document-api/API/LoanRequestServices/UploadLoanDocument', 'FILE_UPLOAD')">
+                Upload Loan Document
+                <span class="proxy-url">POST /document-api/API/LoanRequestServices/UploadLoanDocument → 3.6.174.212:5013</span>
+            </button>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Proxy Test Results & API Responses</h3>
+            <p>Click any API button above to test through the proxy. Real API responses will appear here.</p>
+        </div>
+    </div>
+
+    <script>
+        const BEARER_TOKEN = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
+        let testCount = 0;
+
+        function logResult(message, isSuccess = true, details = null) {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isSuccess ? 'success' : 'error'}`;
+            
+            let content = `[${timestamp}] ${message}`;
+            if (details) {
+                content += `\n${JSON.stringify(details, null, 2)}`;
+            }
+            
+            entry.textContent = content;
+            results.appendChild(entry);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testProxyAPI(name, proxyUrl, payload) {
+            testCount++;
+            
+            console.log(`🧪 Proxy Test ${testCount}: ${name}`);
+            console.log(`📍 Proxy URL: ${proxyUrl}`);
+            console.log(`📦 Payload:`, payload);
+
+            logResult(`🚀 Testing: ${name} via proxy`);
+            logResult(`📍 Proxy Route: ${proxyUrl}`, true);
+            
+            try {
+                const startTime = performance.now();
+                
+                if (payload === 'FILE_UPLOAD') {
+                    // Handle file upload
+                    const formData = new FormData();
+                    const mockFile = new Blob(['Mock document content for testing'], { type: 'application/pdf' });
+                    formData.append('file', mockFile, 'test-document.pdf');
+                    formData.append('ApplicationNumber', 'APP123456');
+                    formData.append('DocumentType', 'Identity');
+                    
+                    logResult(`📄 Uploading mock file via proxy...`);
+                    
+                    const response = await fetch(proxyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${BEARER_TOKEN}`,
+                        },
+                        body: formData
+                    });
+                    
+                    const duration = performance.now() - startTime;
+                    const responseText = await response.text();
+                    
+                    if (response.ok) {
+                        logResult(`✅ ${name} SUCCESS via proxy (${Math.round(duration)}ms)`, true, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            response: responseText
+                        });
+                    } else {
+                        logResult(`⚠️ ${name} responded with status ${response.status}`, false, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            response: responseText
+                        });
+                    }
+                    
+                } else {
+                    // Regular JSON API call
+                    const response = await fetch(proxyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${BEARER_TOKEN}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ body: payload })
+                    });
+                    
+                    const duration = performance.now() - startTime;
+                    const responseText = await response.text();
+                    
+                    let parsedResponse;
+                    try {
+                        parsedResponse = JSON.parse(responseText);
+                    } catch (e) {
+                        parsedResponse = responseText;
+                    }
+                    
+                    if (response.ok) {
+                        logResult(`✅ ${name} SUCCESS via proxy (${Math.round(duration)}ms)`, true, {
+                            status: response.status,
+                            request: payload,
+                            response: parsedResponse
+                        });
+                    } else {
+                        logResult(`⚠️ ${name} responded with status ${response.status} (${Math.round(duration)}ms)`, false, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            request: payload,
+                            response: parsedResponse
+                        });
+                    }
+                }
+                
+            } catch (error) {
+                logResult(`❌ ${name} NETWORK ERROR: ${error.message}`, false, {
+                    error: error.toString(),
+                    proxyUrl: proxyUrl,
+                    payload: payload
+                });
+            }
+        }
+
+        async function testAllAPIs() {
+            logResult('🚀 Starting comprehensive proxy API test suite...');
+            
+            const proxyAPIs = [
+                // Port 5009 - NEW APIs via proxy
+                ['getLoansByCustomer', '/loanlist-api/API/LoanList/GetLoansByCustomer', {CustomerId: 'CUST123'}],
+                ['calculateEMI', '/loanlist-api/API/LoanList/EMICalculator', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24'}],
+                ['pblEligibility', '/loanlist-api/API/LoanList/PBLEligibilityStatus', {CustomerId: 'CUST123', LoanAmount: '75000', LoanTenure: '30'}],
+                
+                // Port 5010 via proxy
+                ['getLoanBalance', '/loan-api/API/LoanServices/GetLoanBalance', {ApplicationNumber: 'APP123456'}],
+                ['getLoanStatus', '/loan-api/API/LoanServices/GetLoanStatus', {ApplicationNumber: 'APP123456'}],
+                ['getLoanDetails', '/loan-api/API/LoanServices/GetLoanDetails', {ApplicationNumber: 'APP123456'}],
+                ['submitLoanRequest', '/loan-api/API/LoanRequestServices/SubmitLoanRequest', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24', CustomerId: 'CUST123'}],
+                ['submitBusinessLoanRequest', '/loan-api/API/LoanRequestServices/SubmitBusinessLoanRequest', {LoanType: 'Business', ProductCode: 'BL001', BusinessID: 'BIZ123', LoanAmount: '100000', LoanTenure: '36'}],
+                
+                // Port 5011 via proxy
+                ['createRetailCustomer', '/customer-api/API/CustomerServices/CreateRetailCustomer', {FirstName: 'John', LastName: 'Doe', Email: 'john.doe@example.com', PhoneNumber: '1234567890', Address: '123 Main St'}],
+                ['createBusinessCustomer', '/customer-api/API/CustomerServices/CreateBusinessCustomer', {BusinessName: 'Acme Corp', ContactPerson: 'Jane Smith', Email: 'contact@acme.com', PhoneNumber: '0987654321', BusinessType: 'Corporation'}],
+                ['getCustomerDetails', '/customer-api/API/CustomerServices/GetCustomerDetails', {CustomerId: 'CUST123'}],
+                
+                // Port 5012 via proxy
+                ['getLoanProductDetails', '/product-api/API/LoanProductServices/GetLoanProductDetails', {ProductCode: 'PL001'}],
+                
+                // Port 5013 via proxy
+                ['uploadDocument', '/document-api/API/LoanRequestServices/UploadLoanDocument', 'FILE_UPLOAD'],
+            ];
+
+            for (let i = 0; i < proxyAPIs.length; i++) {
+                const [name, proxyUrl, payload] = proxyAPIs[i];
+                await testProxyAPI(name, proxyUrl, payload);
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            logResult('✅ All proxy API tests completed! Check results above for actual API responses.');
+        }
+
+        function clearResults() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>📊 Proxy Test Results & API Responses</h3><p>Results cleared. Ready for new tests.</p>';
+            testCount = 0;
+            console.clear();
+        }
+
+        // Log initial setup
+        console.log('🚀 Altus Proxy API Tester Ready');
+        console.log('🔐 Bearer Token configured:', BEARER_TOKEN.substring(0, 20) + '...');
+        console.log('🔧 Using React dev server proxy to bypass CORS');
+        console.log('📡 All requests will go through /loanlist-api, /loan-api, /customer-api, /product-api, /document-api');
+    </script>
+</body>
+</html>

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Submission Flow Test - Step 1 & 2</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 15px;
+    }
+    h2 {
+      color: #667eea;
+      margin-top: 0;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-badge {
+      background: #667eea;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .section {
+      margin-bottom: 25px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    button.business {
+      background: #764ba2;
+    }
+    button.business:hover {
+      background: #653a8f;
+    }
+    button.complete {
+      background: #28a745;
+    }
+    button.complete:hover {
+      background: #218838;
+    }
+    .app-number-display {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .app-number {
+      font-size: 24px;
+      letter-spacing: 2px;
+      margin-top: 10px;
+      font-family: 'Courier New', monospace;
+    }
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 600px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .output .success {
+      color: #4ec9b0;
+    }
+    .output .error {
+      color: #f48771;
+    }
+    .output .info {
+      color: #569cd6;
+    }
+    .output .highlight {
+      color: #dcdcaa;
+      font-weight: bold;
+    }
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status.pending {
+      background: #ffc107;
+      color: #000;
+    }
+    .status.success {
+      background: #28a745;
+      color: white;
+    }
+    .status.error {
+      background: #dc3545;
+      color: white;
+    }
+    .workflow-steps {
+      display: flex;
+      justify-content: space-around;
+      margin: 30px 0;
+      position: relative;
+    }
+    .workflow-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      padding: 20px;
+    }
+    .workflow-step::after {
+      content: '→';
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 30px;
+      color: #667eea;
+    }
+    .workflow-step:last-child::after {
+      display: none;
+    }
+    .step-icon {
+      width: 60px;
+      height: 60px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 auto 10px;
+      box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+    .step-icon.complete {
+      background: #28a745;
+    }
+    .step-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .step-desc {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Loan Submission Flow - Step 1 & 2 Test</h1>
+    
+    <div class="workflow-steps" id="workflow">
+      <div class="workflow-step">
+        <div class="step-icon" id="step1-icon">1</div>
+        <div class="step-title">Submit Loan</div>
+        <div class="step-desc">Salaried or Business</div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-icon" id="step2-icon">2</div>
+        <div class="step-title">Get App Number</div>
+        <div class="step-desc">From API Response</div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-icon" id="step3-icon">3</div>
+        <div class="step-title">Upload Docs</div>
+        <div class="step-desc">Using App Number</div>
+      </div>
+    </div>
+
+    <div id="appNumberDisplay" style="display: none;" class="app-number-display">
+      <div>📋 APPLICATION NUMBER RETRIEVED:</div>
+      <div class="app-number" id="appNumberValue">-</div>
+    </div>
+
+    <div class="section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+      <h2>
+        <span class="step-badge" style="background: #ffc107; color: #000;">⚠️ Diagnostics</span>
+        Backend Connectivity Test
+      </h2>
+      <div class="controls">
+        <button onclick="testBackendConnectivity()" style="background: #17a2b8;">
+          <span>🔍</span> Test Backend Connection
+        </button>
+        <button onclick="testAllEndpoints()" style="background: #6c757d;">
+          <span>🧪</span> Test All Endpoints
+        </button>
+      </div>
+      <p style="margin: 10px 0 0 0; font-size: 13px; color: #856404;">
+        <strong>Note:</strong> If you see 404 errors, the backend APIs at <code>3.6.174.212</code> may not be running or endpoints may not exist yet.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>
+        <span class="step-badge">Controls</span>
+        Test Workflow
+      </h2>
+      <div class="controls">
+        <button onclick="testSalariedLoan()" id="btnSalaried">
+          <span>👔</span> Step 1: Submit Salaried Loan
+        </button>
+        <button onclick="testBusinessLoan()" id="btnBusiness" class="business">
+          <span>🏢</span> Step 1: Submit Business Loan
+        </button>
+        <button onclick="testDocumentUpload()" id="btnUpload" disabled>
+          <span>📄</span> Step 2: Upload Document
+        </button>
+        <button onclick="runCompleteWorkflow('salaried')" id="btnCompleteSalaried" class="complete">
+          <span>✨</span> Complete Flow (Salaried)
+        </button>
+        <button onclick="runCompleteWorkflow('business')" id="btnCompleteBusiness" class="complete">
+          <span>✨</span> Complete Flow (Business)
+        </button>
+        <button onclick="clearOutput()" style="background: #6c757d;">
+          <span>🗑️</span> Clear Output
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>
+        <span class="step-badge">Output</span>
+        API Test Results
+      </h2>
+      <div class="output" id="output">Ready to test. Click a button above to start...</div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const API_BASE = 'http://localhost:3000';
+    const BEARER_TOKEN = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
+    
+    let currentApplicationNumber = null;
+
+    // Sample loan data
+    const SALARIED_LOAN_DATA = {
+      FirstName: "John",
+      LastName: "Doe",
+      Email: "john.doe@example.com",
+      PhoneNumber: "1234567890",
+      NationalID: "12345678",
+      DateOfBirth: "1990-01-15",
+      Gender: "Male",
+      MaritalStatus: "Single",
+      EmployerName: "ABC Corporation",
+      JobTitle: "Software Engineer",
+      MonthlyIncome: 150000,
+      EmploymentDuration: 36,
+      LoanAmount: 500000,
+      LoanTerm: 12,
+      LoanPurpose: "Personal",
+      ResidentialAddress: "123 Main Street, Nairobi",
+      County: "Nairobi",
+      NextOfKinName: "Jane Doe",
+      NextOfKinPhone: "0987654321",
+      Relationship: "Sister"
+    };
+
+    const BUSINESS_LOAN_DATA = {
+      FirstName: "Jane",
+      LastName: "Smith",
+      Email: "jane.smith@example.com",
+      PhoneNumber: "0712345678",
+      NationalID: "87654321",
+      DateOfBirth: "1985-05-20",
+      Gender: "Female",
+      MaritalStatus: "Married",
+      BusinessName: "Smith Enterprises Ltd",
+      BusinessType: "Retail",
+      BusinessRegistrationNumber: "BUS/2020/12345",
+      YearsInBusiness: 5,
+      MonthlyRevenue: 800000,
+      MonthlyExpenses: 500000,
+      LoanAmount: 1000000,
+      LoanTerm: 24,
+      LoanPurpose: "Business Expansion",
+      BusinessAddress: "456 Commerce Street, Mombasa",
+      County: "Mombasa",
+      NextOfKinName: "John Smith",
+      NextOfKinPhone: "0798765432",
+      Relationship: "Spouse"
+    };
+
+    // Helper functions
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const timestamp = new Date().toLocaleTimeString();
+      let className = type;
+      
+      if (output.textContent === 'Ready to test. Click a button above to start...') {
+        output.textContent = '';
+      }
+      
+      output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').textContent = 'Ready to test. Click a button above to start...';
+      currentApplicationNumber = null;
+      document.getElementById('appNumberDisplay').style.display = 'none';
+      document.getElementById('btnUpload').disabled = true;
+      resetWorkflowIcons();
+    }
+
+    function displayApplicationNumber(appNumber) {
+      currentApplicationNumber = appNumber;
+      document.getElementById('appNumberValue').textContent = appNumber;
+      document.getElementById('appNumberDisplay').style.display = 'block';
+      document.getElementById('btnUpload').disabled = false;
+      document.getElementById('step2-icon').classList.add('complete');
+    }
+
+    function resetWorkflowIcons() {
+      document.getElementById('step1-icon').classList.remove('complete');
+      document.getElementById('step2-icon').classList.remove('complete');
+      document.getElementById('step3-icon').classList.remove('complete');
+    }
+
+    function disableButtons(disabled) {
+      document.getElementById('btnSalaried').disabled = disabled;
+      document.getElementById('btnBusiness').disabled = disabled;
+      document.getElementById('btnCompleteSalaried').disabled = disabled;
+      document.getElementById('btnCompleteBusiness').disabled = disabled;
+      if (disabled || !currentApplicationNumber) {
+        document.getElementById('btnUpload').disabled = true;
+      } else {
+        document.getElementById('btnUpload').disabled = false;
+      }
+    }
+
+    // API call function
+    async function makeApiCall(endpoint, method, data = null, isFormData = false) {
+      const headers = {
+        'Authorization': `Bearer ${BEARER_TOKEN}`
+      };
+      
+      if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const options = {
+        method,
+        headers
+      };
+
+      if (data) {
+        if (isFormData) {
+          options.body = data;
+        } else {
+          options.body = JSON.stringify({ body: data });
+        }
+      }
+
+      log(`🌐 Calling: ${API_BASE}${endpoint}`, 'info');
+      log(`   Method: ${method}`, 'info');
+      
+      const response = await fetch(`${API_BASE}${endpoint}`, options);
+      
+      log(`📡 Response Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        log(`❌ Error Response: ${errorText}`, 'error');
+        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+      }
+
+      return await response.json();
+    }
+
+    // Step 1: Submit Salaried Loan
+    async function testSalariedLoan() {
+      resetWorkflowIcons();
+      log('════════════════════════════════════════', 'highlight');
+      log('STEP 1: SUBMITTING SALARIED LOAN REQUEST', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(true);
+      
+      try {
+        log('\n📤 Sending salaried loan request to API...', 'info');
+        log('Request Data: ' + JSON.stringify(SALARIED_LOAN_DATA, null, 2), 'info');
+        
+        const response = await makeApiCall('/loan-api/API/LoanServices/SalariedLoanRequest', 'POST', SALARIED_LOAN_DATA);
+        
+        log('\n✅ SUCCESS! Loan request submitted', 'success');
+        log('Full Response: ' + JSON.stringify(response, null, 2), 'success');
+        
+        document.getElementById('step1-icon').classList.add('complete');
+        
+        // Extract ApplicationNumber
+        const applicationNumber = response.outParams?.ApplicationNumber;
+        
+        if (applicationNumber) {
+          log('\n🎯 APPLICATION NUMBER RETRIEVED:', 'highlight');
+          log('═══════════════════════════════════', 'highlight');
+          log(`   ${applicationNumber}`, 'highlight');
+          log('═══════════════════════════════════', 'highlight');
+          log('\n✨ This ApplicationNumber can now be used for document upload (Step 2)', 'success');
+          
+          displayApplicationNumber(applicationNumber);
+        } else {
+          log('\n❌ ERROR: ApplicationNumber not found in response', 'error');
+          log('Response structure: ' + JSON.stringify(response, null, 2), 'error');
+        }
+        
+      } catch (error) {
+        log('\n❌ ERROR: ' + error.message, 'error');
+        log('Full error: ' + error.stack, 'error');
+      } finally {
+        disableButtons(false);
+      }
+    }
+
+    // Step 1: Submit Business Loan
+    async function testBusinessLoan() {
+      resetWorkflowIcons();
+      log('════════════════════════════════════════', 'highlight');
+      log('STEP 1: SUBMITTING BUSINESS LOAN REQUEST', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(true);
+      
+      try {
+        log('\n📤 Sending business loan request to API...', 'info');
+        log('Request Data: ' + JSON.stringify(BUSINESS_LOAN_DATA, null, 2), 'info');
+        
+        const response = await makeApiCall('/loan-api/API/LoanServices/BusinessLoanRequest', 'POST', BUSINESS_LOAN_DATA);
+        
+        log('\n✅ SUCCESS! Business loan request submitted', 'success');
+        log('Full Response: ' + JSON.stringify(response, null, 2), 'success');
+        
+        document.getElementById('step1-icon').classList.add('complete');
+        
+        // Extract ApplicationNumber
+        const applicationNumber = response.outParams?.ApplicationNumber;
+        
+        if (applicationNumber) {
+          log('\n🎯 APPLICATION NUMBER RETRIEVED:', 'highlight');
+          log('═══════════════════════════════════', 'highlight');
+          log(`   ${applicationNumber}`, 'highlight');
+          log('═══════════════════════════════════', 'highlight');
+          log('\n✨ This ApplicationNumber can now be used for document upload (Step 2)', 'success');
+          
+          displayApplicationNumber(applicationNumber);
+        } else {
+          log('\n❌ ERROR: ApplicationNumber not found in response', 'error');
+          log('Response structure: ' + JSON.stringify(response, null, 2), 'error');
+        }
+        
+      } catch (error) {
+        log('\n❌ ERROR: ' + error.message, 'error');
+        log('Full error: ' + error.stack, 'error');
+      } finally {
+        disableButtons(false);
+      }
+    }
+
+    // Step 2: Upload Document
+    async function testDocumentUpload() {
+      if (!currentApplicationNumber) {
+        log('❌ ERROR: No ApplicationNumber available. Please submit a loan request first (Step 1)', 'error');
+        return;
+      }
+
+      log('\n════════════════════════════════════════', 'highlight');
+      log('STEP 2: UPLOADING DOCUMENT', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      log(`Using ApplicationNumber: ${currentApplicationNumber}`, 'info');
+      
+      disableButtons(true);
+      
+      try {
+        // Create a sample file
+        const fileContent = 'Sample National ID Document Content - This would be an actual PDF in production';
+        const blob = new Blob([fileContent], { type: 'application/pdf' });
+        const file = new File([blob], 'national_id.pdf', { type: 'application/pdf' });
+        
+        const documentType = 'NationalID'; // Document type
+        
+        // Create FormData
+        const formData = new FormData();
+        formData.append('ApplicationNumber', currentApplicationNumber);
+        formData.append('DocumentType', documentType);
+        formData.append('FileName', file);
+        
+        log('\n📤 Uploading document...', 'info');
+        log('Document Details:', 'info');
+        log(`  - ApplicationNumber: ${currentApplicationNumber}`, 'info');
+        log(`  - DocumentType: ${documentType}`, 'info');
+        log(`  - FileName: ${file.name}`, 'info');
+        log(`  - FileType: ${file.type}`, 'info');
+        log(`  - FileSize: ${file.size} bytes`, 'info');
+        
+        const response = await makeApiCall('/document-api/API/DocumentServices/UploadLoanDocument', 'POST', formData, true);
+        
+        log('\n✅ SUCCESS! Document uploaded', 'success');
+        log('Upload Response: ' + JSON.stringify(response, null, 2), 'success');
+        
+        document.getElementById('step3-icon').classList.add('complete');
+        
+      } catch (error) {
+        log('\n❌ ERROR: ' + error.message, 'error');
+        log('Full error: ' + error.stack, 'error');
+      } finally {
+        disableButtons(false);
+      }
+    }
+
+    // Complete Workflow
+    async function runCompleteWorkflow(loanType) {
+      clearOutput();
+      log('████████████████████████████████████████████████████████', 'highlight');
+      log('  COMPLETE LOAN SUBMISSION WORKFLOW', 'highlight');
+      log('  Loan Type: ' + loanType.toUpperCase(), 'highlight');
+      log('████████████████████████████████████████████████████████', 'highlight');
+      
+      disableButtons(true);
+      
+      try {
+        // Step 1: Submit loan
+        if (loanType === 'salaried') {
+          await testSalariedLoan();
+        } else {
+          await testBusinessLoan();
+        }
+        
+        // Check if we got application number
+        if (!currentApplicationNumber) {
+          log('\n❌ WORKFLOW STOPPED: Failed to get ApplicationNumber from Step 1', 'error');
+          disableButtons(false);
+          return;
+        }
+        
+        log('\n✅ Step 1 Complete! Proceeding to Step 2...', 'success');
+        
+        // Wait a moment for visibility
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Step 2: Upload document
+        await testDocumentUpload();
+        
+        // Final summary
+        log('\n████████████████████████████████████████████████████████', 'highlight');
+        log('  ✨ WORKFLOW COMPLETED SUCCESSFULLY! ✨', 'highlight');
+        log('████████████████████████████████████████████████████████', 'highlight');
+        log('\nSummary:', 'success');
+        log(`  ✅ Loan Type: ${loanType}`, 'success');
+        log(`  ✅ ApplicationNumber: ${currentApplicationNumber}`, 'success');
+        log(`  ✅ Loan Request: Submitted`, 'success');
+        log(`  ✅ Documents: Uploaded`, 'success');
+        
+      } catch (error) {
+        log('\n❌ WORKFLOW ERROR: ' + error.message, 'error');
+      } finally {
+        disableButtons(false);
+      }
+    }
+
+    // Diagnostic: Test Backend Connectivity
+    async function testBackendConnectivity() {
+      log('════════════════════════════════════════', 'highlight');
+      log('🔍 BACKEND CONNECTIVITY TEST', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(true);
+      
+      const services = [
+        { name: 'Loan List Services', port: 5009, proxy: '/loanlist-api', endpoint: '/API/LoanListServices/GetLoanApplications' },
+        { name: 'Loan Services', port: 5010, proxy: '/loan-api', endpoint: '/API/LoanServices/SalariedLoanRequest' },
+        { name: 'Customer Services', port: 5011, proxy: '/customer-api', endpoint: '/API/CustomerServices/GetCustomer' },
+        { name: 'Product Services', port: 5012, proxy: '/product-api', endpoint: '/API/ProductServices/GetProducts' },
+        { name: 'Document Services', port: 5013, proxy: '/document-api', endpoint: '/API/DocumentServices/UploadLoanDocument' }
+      ];
+
+      log('\n🌐 Testing connectivity to backend services at 3.6.174.212...', 'info');
+      
+      for (const service of services) {
+        try {
+          log(`\n📡 Testing ${service.name} (Port ${service.port})...`, 'info');
+          log(`   Proxy: ${service.proxy}`, 'info');
+          log(`   Endpoint: ${service.endpoint}`, 'info');
+          
+          // Try to make a simple request
+          const testUrl = `${API_BASE}${service.proxy}${service.endpoint}`;
+          log(`   Full URL: ${testUrl}`, 'info');
+          
+          const response = await fetch(testUrl, {
+            method: 'OPTIONS', // Use OPTIONS to test without sending data
+            headers: {
+              'Authorization': `Bearer ${BEARER_TOKEN}`
+            }
+          });
+          
+          if (response.ok || response.status === 405) { // 405 means method not allowed but server is responding
+            log(`   ✅ ${service.name}: REACHABLE (${response.status})`, 'success');
+          } else {
+            log(`   ⚠️ ${service.name}: RESPONDING BUT WITH STATUS ${response.status}`, 'error');
+          }
+          
+        } catch (error) {
+          log(`   ❌ ${service.name}: NOT REACHABLE - ${error.message}`, 'error');
+        }
+      }
+      
+      log('\n════════════════════════════════════════', 'highlight');
+      log('🏁 Connectivity test complete', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(false);
+    }
+
+    // Diagnostic: Test All Endpoints with Sample Data
+    async function testAllEndpoints() {
+      log('════════════════════════════════════════', 'highlight');
+      log('🧪 TESTING ALL API ENDPOINTS', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(true);
+      
+      const tests = [
+        {
+          name: 'Get Loan Applications',
+          endpoint: '/loanlist-api/API/LoanListServices/GetLoanApplications',
+          method: 'POST',
+          data: {}
+        },
+        {
+          name: 'Get Products',
+          endpoint: '/product-api/API/ProductServices/GetProducts',
+          method: 'POST',
+          data: {}
+        },
+        {
+          name: 'Salaried Loan Request',
+          endpoint: '/loan-api/API/LoanServices/SalariedLoanRequest',
+          method: 'POST',
+          data: SALARIED_LOAN_DATA
+        },
+        {
+          name: 'Business Loan Request',
+          endpoint: '/loan-api/API/LoanServices/BusinessLoanRequest',
+          method: 'POST',
+          data: BUSINESS_LOAN_DATA
+        }
+      ];
+
+      for (const test of tests) {
+        try {
+          log(`\n📤 Testing: ${test.name}`, 'info');
+          log(`   Endpoint: ${test.endpoint}`, 'info');
+          
+          const response = await makeApiCall(test.endpoint, test.method, test.data);
+          log(`   ✅ SUCCESS - Response received`, 'success');
+          log(`   Response: ${JSON.stringify(response).substring(0, 200)}...`, 'success');
+          
+        } catch (error) {
+          log(`   ❌ FAILED - ${error.message}`, 'error');
+        }
+        
+        // Wait between requests
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      log('\n════════════════════════════════════════', 'highlight');
+      log('🏁 Endpoint testing complete', 'highlight');
+      log('════════════════════════════════════════', 'highlight');
+      
+      disableButtons(false);
+    }
+  </script>
+</body>
+</html>

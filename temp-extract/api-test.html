@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Altus API Test - Network Inspector</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .api-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .port-header {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .test-all {
+            background: #17a2b8;
+            font-size: 16px;
+            padding: 12px 24px;
+            margin-bottom: 20px;
+        }
+        .test-all:hover {
+            background: #138496;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #007bff;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .success {
+            border-left-color: #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+        }
+        .network-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .endpoint-url {
+            color: #495057;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .clear-btn {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        .clear-btn:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Altus API Network Inspector</h1>
+            <p>Test all UAT API endpoints and monitor network requests in real-time</p>
+        </div>
+
+        <div class="network-info">
+            <h3>🔐 Authentication Details</h3>
+            <strong>Bearer Token:</strong> <code>0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10</code><br>
+            <strong>Base Server:</strong> <code>http://3.6.174.212</code><br>
+            <strong>CORS Enabled:</strong> All services configured with CORS headers<br>
+            <strong>Network Monitoring:</strong> Open DevTools (F12) → Network tab to see all requests
+        </div>
+
+        <button class="test-all" onclick="testAllAPIs()">🚀 Test All APIs (15 endpoints)</button>
+        <button class="clear-btn" onclick="clearResults()">Clear Results</button>
+
+        <!-- Port 5009 - Loan List Services (NEW) -->
+        <div class="api-section">
+            <div class="port-header">Port 5009 - Loan List Services (NEW from UAT)</div>
+            <button onclick="testAPI('getLoansByCustomer', '5009', 'API/LoanList/GetLoansByCustomer', {CustomerId: 'CUST123'})">
+                Get Loans By Customer
+                <span class="endpoint-url">POST /API/LoanList/GetLoansByCustomer</span>
+            </button>
+            <button onclick="testAPI('calculateEMI', '5009', 'API/LoanList/EMICalculator', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24'})">
+                Calculate EMI
+                <span class="endpoint-url">POST /API/LoanList/EMICalculator</span>
+            </button>
+            <button onclick="testAPI('pblEligibility', '5009', 'API/LoanList/PBLEligibilityStatus', {CustomerId: 'CUST123', LoanAmount: '75000', LoanTenure: '30'})">
+                PBL Eligibility Status
+                <span class="endpoint-url">POST /API/LoanList/PBLEligibilityStatus</span>
+            </button>
+        </div>
+
+        <!-- Port 5010 - Loan Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5010 - Loan Services</div>
+            <button onclick="testAPI('getLoanBalance', '5010', 'API/LoanServices/GetLoanBalance', {ApplicationNumber: 'APP123456'})">
+                Get Loan Balance
+                <span class="endpoint-url">POST /API/LoanServices/GetLoanBalance</span>
+            </button>
+            <button onclick="testAPI('getLoanStatus', '5010', 'API/LoanServices/GetLoanStatus', {ApplicationNumber: 'APP123456'})">
+                Get Loan Status
+                <span class="endpoint-url">POST /API/LoanServices/GetLoanStatus</span>
+            </button>
+            <button onclick="testAPI('getLoanDetails', '5010', 'API/LoanServices/GetLoanDetails', {ApplicationNumber: 'APP123456'})">
+                Get Loan Details
+                <span class="endpoint-url">POST /API/LoanServices/GetLoanDetails</span>
+            </button>
+            <button onclick="testAPI('submitLoanRequest', '5010', 'API/LoanRequestServices/SubmitLoanRequest', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24', CustomerId: 'CUST123'})">
+                Submit Loan Request
+                <span class="endpoint-url">POST /API/LoanRequestServices/SubmitLoanRequest</span>
+            </button>
+            <button onclick="testAPI('submitBusinessLoanRequest', '5010', 'API/LoanRequestServices/SubmitBusinessLoanRequest', {LoanType: 'Business', ProductCode: 'BL001', BusinessID: 'BIZ123', LoanAmount: '100000', LoanTenure: '36'})">
+                Submit Business Loan Request (NEW)
+                <span class="endpoint-url">POST /API/LoanRequestServices/SubmitBusinessLoanRequest</span>
+            </button>
+        </div>
+
+        <!-- Port 5011 - Customer Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5011 - Customer Services</div>
+            <button onclick="testAPI('createRetailCustomer', '5011', 'API/CustomerServices/CreateRetailCustomer', {FirstName: 'John', LastName: 'Doe', Email: 'john.doe@example.com', PhoneNumber: '1234567890', Address: '123 Main St'})">
+                Create Retail Customer
+                <span class="endpoint-url">POST /API/CustomerServices/CreateRetailCustomer</span>
+            </button>
+            <button onclick="testAPI('createBusinessCustomer', '5011', 'API/CustomerServices/CreateBusinessCustomer', {BusinessName: 'Acme Corp', ContactPerson: 'Jane Smith', Email: 'contact@acme.com', PhoneNumber: '0987654321', BusinessType: 'Corporation'})">
+                Create Business Customer
+                <span class="endpoint-url">POST /API/CustomerServices/CreateBusinessCustomer</span>
+            </button>
+            <button onclick="testAPI('getCustomerDetails', '5011', 'API/CustomerServices/GetCustomerDetails', {CustomerId: 'CUST123'})">
+                Get Customer Details
+                <span class="endpoint-url">POST /API/CustomerServices/GetCustomerDetails</span>
+            </button>
+        </div>
+
+        <!-- Port 5012 - Product Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5012 - Product Services</div>
+            <button onclick="testAPI('getLoanProductDetails', '5012', 'API/LoanProductServices/GetLoanProductDetails', {ProductCode: 'PL001'})">
+                Get Loan Product Details
+                <span class="endpoint-url">POST /API/LoanProductServices/GetLoanProductDetails</span>
+            </button>
+        </div>
+
+        <!-- Port 5013 - Document Services -->
+        <div class="api-section">
+            <div class="port-header">Port 5013 - Document Services</div>
+            <button onclick="testAPI('uploadDocument', '5013', 'API/LoanRequestServices/UploadLoanDocument', 'FILE_UPLOAD')">
+                Upload Loan Document
+                <span class="endpoint-url">POST /API/LoanRequestServices/UploadLoanDocument</span>
+            </button>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Test Results & Network Activity</h3>
+            <p>Click any API button above to test. Results will appear here and network requests will be visible in DevTools.</p>
+        </div>
+    </div>
+
+    <script>
+        const BEARER_TOKEN = '0B9574489-7EC5-4373-94DA-871FDE07CF8EC3BEA3AF-C9B7-4DEA-AE35-EA1C626191C00314393C-29B4-4E60-8D11-595EDAAAC42F10';
+        const BASE_SERVER = 'http://3.6.174.212';
+
+        let testCount = 0;
+
+        function logResult(message, isSuccess = true, details = null) {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isSuccess ? 'success' : 'error'}`;
+            
+            let content = `[${timestamp}] ${message}`;
+            if (details) {
+                content += `\n${JSON.stringify(details, null, 2)}`;
+            }
+            
+            entry.textContent = content;
+            results.appendChild(entry);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testAPI(name, port, endpoint, payload) {
+            const url = `${BASE_SERVER}:${port}/${endpoint}`;
+            testCount++;
+            
+            console.log(`🧪 Test ${testCount}: ${name}`);
+            console.log(`📍 URL: ${url}`);
+            console.log(`📦 Payload:`, payload);
+
+            logResult(`🚀 Testing: ${name} on Port ${port}`);
+            logResult(`📍 URL: ${url}`, true);
+            
+            try {
+                const startTime = performance.now();
+                
+                if (payload === 'FILE_UPLOAD') {
+                    // Handle file upload differently
+                    const formData = new FormData();
+                    const mockFile = new Blob(['Mock document content for testing'], { type: 'application/pdf' });
+                    formData.append('file', mockFile, 'test-document.pdf');
+                    formData.append('ApplicationNumber', 'APP123456');
+                    formData.append('DocumentType', 'Identity');
+                    
+                    logResult(`📄 Uploading mock file to ${name}...`);
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${BEARER_TOKEN}`,
+                            // Note: Don't set Content-Type for FormData, browser handles it
+                        },
+                        body: formData
+                    });
+                    
+                    const duration = performance.now() - startTime;
+                    const responseText = await response.text();
+                    
+                    logResult(`✅ ${name} completed (${Math.round(duration)}ms)`, true, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries(response.headers.entries()),
+                        response: responseText
+                    });
+                    
+                } else {
+                    // Regular JSON API call
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${BEARER_TOKEN}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ body: payload })
+                    });
+                    
+                    const duration = performance.now() - startTime;
+                    const responseData = await response.text();
+                    
+                    let parsedResponse;
+                    try {
+                        parsedResponse = JSON.parse(responseData);
+                    } catch (e) {
+                        parsedResponse = responseData;
+                    }
+                    
+                    logResult(`✅ ${name} completed (${Math.round(duration)}ms)`, true, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        request: payload,
+                        response: parsedResponse
+                    });
+                }
+                
+            } catch (error) {
+                logResult(`❌ ${name} failed: ${error.message}`, false, {
+                    error: error.toString(),
+                    url: url,
+                    payload: payload
+                });
+            }
+        }
+
+        async function testAllAPIs() {
+            logResult('🚀 Starting comprehensive API test suite...');
+            
+            const apis = [
+                // Port 5009 - NEW APIs
+                ['getLoansByCustomer', '5009', 'API/LoanList/GetLoansByCustomer', {CustomerId: 'CUST123'}],
+                ['calculateEMI', '5009', 'API/LoanList/EMICalculator', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24'}],
+                ['pblEligibility', '5009', 'API/LoanList/PBLEligibilityStatus', {CustomerId: 'CUST123', LoanAmount: '75000', LoanTenure: '30'}],
+                
+                // Port 5010
+                ['getLoanBalance', '5010', 'API/LoanServices/GetLoanBalance', {ApplicationNumber: 'APP123456'}],
+                ['getLoanStatus', '5010', 'API/LoanServices/GetLoanStatus', {ApplicationNumber: 'APP123456'}],
+                ['getLoanDetails', '5010', 'API/LoanServices/GetLoanDetails', {ApplicationNumber: 'APP123456'}],
+                ['submitLoanRequest', '5010', 'API/LoanRequestServices/SubmitLoanRequest', {LoanType: 'Personal', ProductCode: 'PL001', LoanAmount: '50000', LoanTenure: '24', CustomerId: 'CUST123'}],
+                ['submitBusinessLoanRequest', '5010', 'API/LoanRequestServices/SubmitBusinessLoanRequest', {LoanType: 'Business', ProductCode: 'BL001', BusinessID: 'BIZ123', LoanAmount: '100000', LoanTenure: '36'}],
+                
+                // Port 5011
+                ['createRetailCustomer', '5011', 'API/CustomerServices/CreateRetailCustomer', {FirstName: 'John', LastName: 'Doe', Email: 'john.doe@example.com', PhoneNumber: '1234567890', Address: '123 Main St'}],
+                ['createBusinessCustomer', '5011', 'API/CustomerServices/CreateBusinessCustomer', {BusinessName: 'Acme Corp', ContactPerson: 'Jane Smith', Email: 'contact@acme.com', PhoneNumber: '0987654321', BusinessType: 'Corporation'}],
+                ['getCustomerDetails', '5011', 'API/CustomerServices/GetCustomerDetails', {CustomerId: 'CUST123'}],
+                
+                // Port 5012
+                ['getLoanProductDetails', '5012', 'API/LoanProductServices/GetLoanProductDetails', {ProductCode: 'PL001'}],
+                
+                // Port 5013
+                ['uploadDocument', '5013', 'API/LoanRequestServices/UploadLoanDocument', 'FILE_UPLOAD'],
+            ];
+
+            for (let i = 0; i < apis.length; i++) {
+                const [name, port, endpoint, payload] = apis[i];
+                await testAPI(name, port, endpoint, payload);
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            logResult('✅ All API tests completed! Check Network tab in DevTools for detailed request information.');
+        }
+
+        function clearResults() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>📊 Test Results & Network Activity</h3><p>Results cleared. Ready for new tests.</p>';
+            testCount = 0;
+            console.clear();
+        }
+
+        // Log initial setup
+        console.log('🧪 Altus API Tester Ready');
+        console.log('🔐 Bearer Token configured:', BEARER_TOKEN.substring(0, 20) + '...');
+        console.log('🌐 Base Server:', BASE_SERVER);
+        console.log('📡 To monitor network requests: Open DevTools (F12) → Network tab');
+    </script>
+</body>
+</html>

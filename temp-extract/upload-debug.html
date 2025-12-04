@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Test - Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 10px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Altus Upload Feature Debug Test</h1>
+    
+    <div class="test-section">
+        <h3>📋 Current Page Analysis</h3>
+        <button onclick="analyzeCurrentPage()">Analyze Current Page</button>
+        <div id="pageAnalysis"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📄 Direct File Upload Test</h3>
+        <input type="file" id="testFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple>
+        <button onclick="testFileUpload()">Test Upload Logic</button>
+        <div id="uploadResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 Debug Console Logs</h3>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <button onclick="checkReactState()">Check React State</button>
+        <div id="debugLogs" class="log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🧪 Quick Fixes</h3>
+        <button onclick="jumpToDocumentsStep()">Jump to Documents Step</button>
+        <button onclick="createMockCustomer()">Create Mock Customer</button>
+        <button onclick="checkWizardState()">Check Wizard State</button>
+    </div>
+
+    <script>
+        let logContainer = document.getElementById('debugLogs');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[Upload Debug] ${message}`);
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '';
+        }
+        
+        function analyzeCurrentPage() {
+            log('🔍 Analyzing current page...', 'info');
+            
+            // Check if React is loaded
+            const hasReact = typeof React !== 'undefined';
+            log(`React loaded: ${hasReact}`, hasReact ? 'success' : 'error');
+            
+            // Check for file inputs
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            log(`File inputs found: ${fileInputs.length}`, fileInputs.length > 0 ? 'success' : 'error');
+            
+            // Check for upload buttons
+            const uploadButtons = document.querySelectorAll('button');
+            const uploadButtonCount = Array.from(uploadButtons).filter(btn => 
+                btn.textContent?.toLowerCase().includes('select') || 
+                btn.textContent?.toLowerCase().includes('upload')
+            ).length;
+            log(`Upload-related buttons found: ${uploadButtonCount}`, uploadButtonCount > 0 ? 'success' : 'error');
+            
+            // Check for wizard steps
+            const wizardElements = document.querySelectorAll('[data-testid*="step"], [class*="step"], [class*="wizard"]');
+            log(`Wizard elements found: ${wizardElements.length}`, wizardElements.length > 0 ? 'success' : 'error');
+            
+            // Check current URL
+            log(`Current URL: ${window.location.href}`, 'info');
+            
+            document.getElementById('pageAnalysis').innerHTML = `
+                <p><strong>Analysis Complete:</strong></p>
+                <ul>
+                    <li>React: ${hasReact ? '✅' : '❌'}</li>
+                    <li>File Inputs: ${fileInputs.length}</li>
+                    <li>Upload Buttons: ${uploadButtonCount}</li>
+                    <li>Wizard Elements: ${wizardElements.length}</li>
+                </ul>
+            `;
+        }
+        
+        function testFileUpload() {
+            const fileInput = document.getElementById('testFileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                log('❌ No files selected for testing', 'error');
+                return;
+            }
+            
+            log(`📁 Testing with ${files.length} file(s)`, 'info');
+            
+            Array.from(files).forEach((file, index) => {
+                log(`File ${index + 1}: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(2)} KB)`, 'info');
+                
+                // Test file validation
+                const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                const isValidType = allowedTypes.includes(file.type);
+                const isValidSize = file.size <= maxSize;
+                
+                log(`  Type validation: ${isValidType ? '✅' : '❌'} (${file.type})`, isValidType ? 'success' : 'error');
+                log(`  Size validation: ${isValidSize ? '✅' : '❌'} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, isValidSize ? 'success' : 'error');
+                
+                if (isValidType && isValidSize) {
+                    log(`  File ${file.name} would pass validation ✅`, 'success');
+                } else {
+                    log(`  File ${file.name} would fail validation ❌`, 'error');
+                }
+            });
+            
+            document.getElementById('uploadResults').innerHTML = `
+                <p><strong>File Test Results:</strong> ${files.length} files analyzed</p>
+            `;
+        }
+        
+        function checkReactState() {
+            log('🔄 Checking React application state...', 'info');
+            
+            try {
+                // Try to access React DevTools or global state
+                if (window.React) {
+                    log('✅ React is available in window', 'success');
+                }
+                
+                // Check for any global state or context
+                const globalKeys = Object.keys(window).filter(key => 
+                    key.toLowerCase().includes('altus') || 
+                    key.toLowerCase().includes('wizard') ||
+                    key.toLowerCase().includes('context')
+                );
+                
+                if (globalKeys.length > 0) {
+                    log(`🎯 Found global keys: ${globalKeys.join(', ')}`, 'success');
+                } else {
+                    log('ℹ️ No obvious global state found', 'info');
+                }
+                
+                // Check if we can find React root
+                const reactRoot = document.querySelector('#root');
+                if (reactRoot) {
+                    log('✅ React root element found', 'success');
+                    const hasReactInstance = reactRoot._reactInternalInstance || reactRoot._reactRootContainer;
+                    log(`React instance: ${hasReactInstance ? '✅' : '❌'}`, hasReactInstance ? 'success' : 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking React state: ${error.message}`, 'error');
+            }
+        }
+        
+        function jumpToDocumentsStep() {
+            log('🔄 Attempting to navigate to documents step...', 'info');
+            
+            // Try to find the documents step in the URL
+            if (window.location.pathname.includes('wizard')) {
+                const newUrl = window.location.origin + '/wizard/documents';
+                log(`Navigating to: ${newUrl}`, 'info');
+                window.location.href = newUrl;
+            } else {
+                const wizardUrl = window.location.origin + '/wizard';
+                log(`Navigating to wizard: ${wizardUrl}`, 'info');
+                window.location.href = wizardUrl;
+            }
+        }
+        
+        function createMockCustomer() {
+            log('👤 Creating mock customer for testing...', 'info');
+            
+            // Try to access any available customer creation functions
+            if (window.altusApi || window.createCustomer) {
+                log('🎯 Found customer creation API', 'success');
+                // Implementation would go here
+            } else {
+                log('ℹ️ Creating mock customer data in localStorage', 'info');
+                
+                const mockCustomer = {
+                    customerId: 'MOCK_' + Date.now(),
+                    firstName: 'Test',
+                    lastName: 'User',
+                    nrc: '123456/78/90',
+                    phone: '+260977123456',
+                    createdAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem('altus_mock_customer', JSON.stringify(mockCustomer));
+                log('✅ Mock customer created and stored', 'success');
+            }
+        }
+        
+        function checkWizardState() {
+            log('🧙‍♂️ Checking wizard state...', 'info');
+            
+            // Check localStorage for any wizard data
+            const wizardKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('wizard') || key.includes('altus') || key.includes('draft'))) {
+                    wizardKeys.push(key);
+                }
+            }
+            
+            if (wizardKeys.length > 0) {
+                log(`📦 Found wizard data keys: ${wizardKeys.join(', ')}`, 'success');
+                wizardKeys.forEach(key => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key) || '{}');
+                        log(`  ${key}: ${Object.keys(data).join(', ')}`, 'info');
+                    } catch (e) {
+                        log(`  ${key}: (not JSON)`, 'info');
+                    }
+                });
+            } else {
+                log('ℹ️ No wizard data found in localStorage', 'info');
+            }
+            
+            // Check current wizard step from URL
+            const currentStep = window.location.pathname.split('/').pop();
+            log(`Current step from URL: ${currentStep}`, 'info');
+        }
+        
+        // Auto-run initial analysis
+        window.addEventListener('load', () => {
+            log('🚀 Upload Debug Tool Loaded', 'success');
+            analyzeCurrentPage();
+        });
+    </script>
+</body>
+</html>
