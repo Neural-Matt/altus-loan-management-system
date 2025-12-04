@@ -1,0 +1,205 @@
+Layer,Module,File Path,Type,Purpose,Dependencies,Key Exports,Lines of Code (Approx),Status
+Infrastructure,Root Configuration,package.json,Config,NPM package configuration and dependencies,React 18.3.1 | Material-UI 7.3.4 | Axios 1.12.2 | React Hook Form 7.63.0 | Zod 4.1.11,N/A,57,Active
+Infrastructure,TypeScript Config,tsconfig.json,Config,TypeScript compiler configuration,typescript 4.9.5,N/A,~30,Active
+Infrastructure,Proxy Setup,src/setupProxy.js,Config,Development proxy for API requests,http-proxy-middleware 3.0.5,N/A,~20,Active
+Infrastructure,Docker Build,Dockerfile,Config,Production Docker container configuration,nginx alpine,N/A,~50,Active
+Infrastructure,Docker Compose,docker-compose.yml,Config,Docker orchestration for production,docker-compose,N/A,~80,Active
+Infrastructure,Nginx Config,nginx.conf,Config,Web server configuration for production,nginx,N/A,~100,Active
+
+Presentation,Application Entry,src/index.tsx,Component,React application entry point and root render,react-dom/client | App.tsx,createRoot,~30,Active
+Presentation,Root Component,src/components/App.tsx,Component,Main app component with routing and providers,react-router-dom | ThemeProvider | AltusProvider,App (default),60,Active
+Presentation,Theme Configuration,src/theme/theme.ts,Config,Material-UI theme customization,@mui/material,theme,~150,Active
+
+Presentation - Pages,Landing Page,src/pages/LandingPage.tsx,Page,Application home page with product selection,@mui/material | useNavigate,LandingPage,~200,Active
+Presentation - Pages,Wizard Page,src/pages/WizardPage.tsx,Page,Multi-step loan application wizard,MultiStepWizard | WizardDataProvider,WizardPage,~300,Active
+Presentation - Pages,Tracking Page,src/pages/TrackingPage.tsx,Page,Loan application status tracking,LoanStatusTracker | recentTracking,TrackingPage,~250,Active
+Presentation - Pages,API Test Page,src/pages/ApiTestPage.tsx,Page,API connectivity testing interface,apiTester | altusApi,ApiTestPage (default),~150,Active
+Presentation - Pages,Not Found Page,src/pages/NotFoundPage.tsx,Page,404 error page,@mui/material,NotFoundPage,~50,Active
+
+Presentation - Layout,App Layout,src/components/layout/AppLayout.tsx,Component,Common layout wrapper with header/footer,Header | Footer,AppLayout,~50,Active
+Presentation - Layout,Header,src/components/layout/Header.tsx,Component,Application header with navigation,@mui/material | react-router-dom,Header,~150,Active
+Presentation - Layout,Footer,src/components/layout/Footer.tsx,Component,Application footer with branding,@mui/material,Footer,~100,Active
+
+Presentation - Wizard,Multi-Step Wizard,src/components/wizard/MultiStepWizard.tsx,Component,Core wizard navigation and flow control,WizardProvider | WizardProgress,MultiStepWizard,~200,Active
+Presentation - Wizard,Wizard Context,src/components/wizard/WizardContext.tsx,Context,Wizard state management (steps/navigation),React Context API,WizardProvider | useWizard,~100,Active
+Presentation - Wizard,Wizard Data Context,src/components/wizard/WizardDataContext.tsx,Context,Form data state for wizard steps,React Context API,WizardDataProvider | useWizardData,~200,Active
+Presentation - Wizard,Wizard Progress,src/components/wizard/WizardProgress.tsx,Component,Visual progress indicator for wizard steps,@mui/material | WizardContext,WizardProgress,~80,Active
+
+Presentation - Wizard Steps,Calculator Step,src/components/wizard/steps/CalculatorStep.tsx,Component,Loan amount and tenure calculator,loanCalculator | WizardDataContext,CalculatorStep,~300,Active
+Presentation - Wizard Steps,Customer Step,src/components/wizard/steps/CustomerStep.tsx,Component,Customer details form (personal info bank NextOfKin Reference),react-hook-form | FormTextField | schemas,CustomerStep,~650,Active
+Presentation - Wizard Steps,Documents Step,src/components/wizard/steps/DocumentsStep.tsx,Component,Document upload interface with OCR validation,Tesseract.js | docValidation | payslipMerger,DocumentsStep,~800,Active
+Presentation - Wizard Steps,Review Step,src/components/wizard/steps/ReviewStep.tsx,Component,Application summary and review,WizardDataContext | applicationPdfGenerator,ReviewStep,~400,Active
+Presentation - Wizard Steps,Confirmation Step,src/components/wizard/steps/ConfirmationStep.tsx,Component,Submission confirmation and success message,WizardDataContext,ConfirmationStep,~150,Active
+
+Presentation - Form Components,Form Text Field,src/components/form/FormTextField.tsx,Component,Controlled text input with validation,react-hook-form | @mui/material,FormTextField,~50,Active
+Presentation - Form Components,Form NRC Field,src/components/form/FormNRCField.tsx,Component,NRC input with format validation (NNNNNN/NN/N),react-hook-form | @mui/material,FormNRCField,~100,Active
+
+Presentation - Common,Pill Component,src/components/common/Pill.tsx,Component,Styled label/badge component,@mui/material,Pill,~40,Active
+Presentation - Common,API Connectivity Checker,src/components/common/ApiConnectivityChecker.tsx,Component,Real-time API health monitoring,axios | apiConfig,ApiConnectivityChecker,~150,Active
+
+Presentation - Tracking,Loan Status Tracker,src/components/tracking/LoanStatusTracker.tsx,Component,Visual loan status timeline,@mui/material | altusApi,LoanStatusTracker,~300,Active
+Presentation - Tracking,Status Tracker Example,src/components/tracking/LoanStatusTrackerExample.tsx,Component,Demo component for status tracker,LoanStatusTracker,LoanStatusTrackerExample,~100,Active
+
+Presentation - Feedback,Snackbar Provider,src/components/feedback/SnackbarProvider.tsx,Context,Global notification/toast system,@mui/material | React Context,SnackbarProvider | useSnackbar,~100,Active
+
+Presentation - Examples,Altus Context Example,src/components/AltusContextExample.tsx,Component,Example usage of AltusContext,AltusContext | useAltus,AltusContextExample,~200,Active
+Presentation - Examples,API Tester Component,src/components/APITesterComponent.tsx,Component,Interactive API testing interface,apiTester | altusApi,APITesterComponent (default),~500,Active
+
+Business Logic - API,Altus API Client,src/api/altusApi.ts,Service,Main API client for Altus backend integration,axios | http | types/altus,createRetailCustomer | submitLoanRequest | uploadDocuments | getLoanStatus | handleAltusResponse,~1000,Active
+Business Logic - API,Altus API Examples,src/api/altusApiExamples.ts,Service,Example implementations and usage patterns,altusApi,enhancedCustomerLookup | createRetailCustomerExample | submitLoanRequestExample,~700,Active
+Business Logic - API,HTTP Client,src/api/http.ts,Service,Configured Axios instance,axios,http,~30,Active
+Business Logic - API,Loan API,src/api/loanApi.ts,Service,Loan-specific API operations,http | types,loanApi,~150,Active
+Business Logic - API,Mock API,src/api/mockApi.ts,Service,Mock API for development/testing,N/A,mockSubmitApplication | mockTrackStatus | isMockMode,~200,Active
+Business Logic - API,API Tester,src/api/apiTester.ts,Service,Comprehensive API testing utilities,altusApi,AltusApiTester | ApiTestResult,~400,Active
+Business Logic - API,CORS Test Helper,src/api/corsTestHelper.ts,Service,CORS debugging and testing utilities,axios,corsTestFunctions,~150,Active
+Business Logic - API,Quick Tester,src/api/quickTester.ts,Service,Quick API endpoint testing,altusApi,quickTest functions,~100,Active
+
+Business Logic - Hooks,UAT Workflow Hook,src/hooks/useUATWorkflow.ts,Hook,User acceptance testing workflow orchestration,altusApi | WizardDataContext,useUATWorkflow | LoanApplicationWorkflow,~200,Active
+Business Logic - Hooks,Customer Creation Hook,src/hooks/useCustomerCreation.ts,Hook,Customer creation state management,altusApi,useCustomerCreation | useCustomerCreationSimple,~250,Active
+
+Business Logic - Context,Altus Context,src/context/AltusContext.tsx,Context,Global state for customer loan and API interactions,React Context | altusApi,AltusProvider | useAltus | CustomerData | LoanData,~1200,Active
+Business Logic - Context,Context Exports,src/context/index.ts,Module,Re-exports context modules,AltusContext,AltusProvider | useAltus | types,~10,Active
+
+Business Logic - Utils,Loan Calculator,src/utils/loanCalculator.ts,Utility,Client-side loan calculation logic,N/A,computeLocalLoanEstimate | LOAN_PRODUCTS | validateLoanAmount,~300,Active
+Business Logic - Utils,Application PDF Generator,src/utils/applicationPdfGenerator.ts,Utility,Generate PDF summary of loan application,jsPDF,generateApplicationPDF,~200,Active
+Business Logic - Utils,Document Validation,src/utils/docValidation.ts,Utility,File type size and OCR validation,Tesseract.js,validateDocument | extractNRCFromImage,~150,Active
+Business Logic - Utils,Payslip Merger,src/utils/payslipMerger.ts,Utility,Merge 3 payslip PDFs into single file,jsPDF,mergePayslips,~100,Active
+Business Logic - Utils,NRC Merger,src/utils/nrcMerger.ts,Utility,Merge NRC front/back images,jsPDF,mergeNRCImages,~80,Active
+Business Logic - Utils,Draft Storage,src/utils/draftStorage.ts,Utility,LocalStorage persistence for wizard drafts,localStorage,saveDraft | loadDraft | clearDraft,~100,Active
+Business Logic - Utils,Recent Tracking,src/utils/recentTracking.ts,Utility,Track recent loan application references,localStorage,upsertTracked | getTracked | removeTracked,~80,Active
+Business Logic - Utils,Event Log,src/utils/eventLog.ts,Utility,In-memory event logging for debugging,N/A,logEvent | getEventLog,~50,Active
+Business Logic - Utils,Format Utilities,src/utils/format.ts,Utility,Number and currency formatting helpers,N/A,formatCurrencyZMW | formatNumber,~30,Active
+Business Logic - Utils,Sanitize,src/utils/sanitize.ts,Utility,Input sanitization,N/A,sanitizePlain,~20,Active
+Business Logic - Utils,Retry Logic,src/utils/retry.ts,Utility,Generic retry mechanism for async operations,N/A,retry | RetryOptions,~60,Active
+
+Data - Validation,Form Schemas,src/validation/schemas.ts,Schema,Zod validation schemas for forms,zod,customerSchema | calculatorSchema | CustomerFormValues,~80,Active
+Data - Validation,Mandatory Fields,src/validation/mandatoryFields.ts,Validator,API request field validation,constants,validateRetailCustomer | validateSalariedLoanRequest | validateDocumentUpload,~600,Active
+
+Data - Types,Altus Types,src/types/altus.ts,Types,TypeScript interfaces for Altus API,N/A,RetailCustomerRequest | LoanDetailsResponse | LoanRequestResponse | CustomerDetailsResponse,~400,Active
+Data - Types,Common Types,src/types/index.ts,Types,Shared TypeScript interfaces,N/A,Customer | LoanProduct | LoanRequestPayload | ApiResponse,~100,Active
+Data - Types,React DOM Types,src/types/react-dom-client.d.ts,Types,Type definitions for React 18 rendering,N/A,createRoot,~20,Active
+Data - Types,Tesseract Types,src/types/tesseract-js.d.ts,Types,Type definitions for OCR library,N/A,createWorker,~15,Active
+
+Data - Config,API Configuration,src/config/apiConfig.ts,Config,Environment-specific API endpoints,N/A,API_CONFIG | CURRENT_API_CONFIG | isTestMode,~50,Active
+
+Data - Constants,Validation Constants,src/constants/validationConstants.ts,Constants,Enums and validation constants for API,N/A,VALID_CUSTOMER_STATUS | DOCUMENT_TYPES | isValidGender | isValidSector,~200,Active
+
+Testing,API Validation Tests,src/test/apiValidation.ts,Test,UAT compliance validation,altusApi,validateUATCompliance | generateUATComplianceReport,~200,Active
+Testing,UAT Workflow Test,src/test/uatWorkflowTest.ts,Test,End-to-end workflow testing,useUATWorkflow,N/A,~150,Active
+Testing,Loan Submission Flow,src/test/loanSubmissionFlow.ts,Test,Loan submission integration test,altusApi,N/A,~200,Active
+Testing,Browser API Test,src/test/browser-api-test.js,Test,Browser-based API testing,N/A,N/A,~100,Active
+Testing,API Test Script,src/test/api-test.js,Test,Standalone API test script,N/A,N/A,~150,Active
+
+Deployment,Docker Build Script,docker-build.sh,Script,Shell script for building Docker image,docker,N/A,~50,Active
+Deployment,Docker Build Batch,docker-build.bat,Script,Windows batch for building Docker image,docker,N/A,~30,Active
+Deployment,VPS Deployment Script,deploy-altus-vps-ip.sh,Script,Automated VPS deployment script,ssh | docker,N/A,~300,Active
+Deployment,Production Guide,PRODUCTION_DEPLOYMENT_GUIDE.md,Documentation,Step-by-step production deployment,N/A,N/A,~200,Active
+Deployment,Quick VPS Guide,QUICK_VPS_DEPLOYMENT.md,Documentation,Quick reference for VPS deployment,N/A,N/A,~150,Active
+Deployment,VPS IP Guide,VPS_IP_DEPLOYMENT_GUIDE.md,Documentation,IP-based deployment instructions,N/A,N/A,~100,Active
+
+Documentation,README,README.md,Documentation,Project overview and setup instructions,N/A,N/A,~400,Active
+Documentation,Altus API README,ALTUS_API_README.md,Documentation,API integration documentation,N/A,N/A,~300,Active
+Documentation,UAT Testing Guide,UAT_TESTING_GUIDE.md,Documentation,User acceptance testing procedures,N/A,N/A,~250,Active
+Documentation,UAT Integration Status,UAT_INTEGRATION_STATUS.md,Documentation,Current UAT integration status,N/A,N/A,~200,Active
+Documentation,UAT API Fixes Summary,UAT_API_FIXES_SUMMARY.md,Documentation,Summary of API fixes for UAT,N/A,N/A,~150,Active
+Documentation,API Fixes Summary,API_FIXES_SUMMARY.md,Documentation,General API fixes documentation,N/A,N/A,~150,Active
+Documentation,API Update Summary,API_UPDATE_SUMMARY.md,Documentation,Recent API updates changelog,N/A,N/A,~100,Active
+Documentation,Docker README,DOCKER_README.md,Documentation,Docker setup and usage,N/A,N/A,~200,Active
+Documentation,Altus Context README,src/context/ALTUS_CONTEXT_README.md,Documentation,Context API usage guide,N/A,N/A,~150,Active
+
+Build Output,Production Build,build/,Directory,Optimized production build output,react-scripts build,N/A,~2.5MB,Generated
+Build Output,Main Bundle,build/static/js/main.3aca9c72.js,Bundle,Main application JavaScript bundle,webpack,N/A,217KB (gzipped),Generated
+Build Output,Vendor Chunks,build/static/js/*.chunk.js,Bundle,Code-split vendor libraries,webpack,N/A,~400KB total,Generated
+Build Output,Index HTML,build/index.html,HTML,Production HTML entry point,react-scripts,N/A,~5KB,Generated
+
+External API - Endpoints,Customer Lookup,GET /API/CustomerDetails/Retail/{identityNo},Endpoint,Retrieve customer by NRC or passport,Altus Backend (Port 5010),CustomerDetailsResponse,N/A,External
+External API - Endpoints,Create Retail Customer,POST /API/CustomerDetails/Retail,Endpoint,Create new retail customer record,Altus Backend (Port 5010),RetailCustomerRequest → Response,N/A,External
+External API - Endpoints,Create Business Customer,POST /API/CustomerDetails/Business,Endpoint,Create new business customer record,Altus Backend (Port 5011),BusinessCustomerRequest → Response,N/A,External
+External API - Endpoints,Get Loan Product,GET /API/LoanProduct/{productCode}/{employerId},Endpoint,Retrieve loan product details,Altus Backend (Port 5012),LoanProductResponse,N/A,External
+External API - Endpoints,Submit Salaried Loan,POST /API/LoanRequest/Salaried,Endpoint,Submit salaried employee loan request,Altus Backend (Port 5013),LoanRequestResponse with ApplicationNumber,N/A,External
+External API - Endpoints,Submit Business Loan,POST /API/LoanRequest/Business,Endpoint,Submit business/SME loan request,Altus Backend (Port 5013),LoanRequestResponse,N/A,External
+External API - Endpoints,Upload Documents,POST /API/LoanRequest/LoanRequestDocuments,Endpoint,Upload loan application documents (Base64),Altus Backend (Port 5014),UploadDocumentResponse,N/A,External
+External API - Endpoints,Get Loan Status,GET /API/LoanRequest/Status/{applicationNo},Endpoint,Track loan application status,Altus Backend (Port 5015),LoanStatusResponse,N/A,External
+External API - Endpoints,Get Loan Details,GET /API/LoanDetails/{loanId},Endpoint,Retrieve loan account details,Altus Backend (Port 5016),LoanDetailsResponse,N/A,External
+External API - Endpoints,Get Loan Balance,GET /API/LoanBalance/{loanId},Endpoint,Get current loan balance and payments,Altus Backend (Port 5017),LoanBalanceResponse,N/A,External
+
+Architecture Patterns,Component Pattern,React Functional Components,Pattern,All UI components use functional components with hooks,React Hooks,N/A,N/A,Active
+Architecture Patterns,State Management,Context API + Hooks,Pattern,Global state via React Context local state via useState,React Context API,N/A,N/A,Active
+Architecture Patterns,Form Handling,React Hook Form + Zod,Pattern,Declarative forms with schema validation,react-hook-form | zod,N/A,N/A,Active
+Architecture Patterns,API Integration,Axios + Custom Wrapper,Pattern,Centralized API client with error handling,axios | altusApi,N/A,N/A,Active
+Architecture Patterns,Routing,React Router v7,Pattern,Client-side routing with nested routes,react-router-dom,N/A,N/A,Active
+Architecture Patterns,Styling,Material-UI + Emotion,Pattern,Component library with CSS-in-JS,@mui/material | @emotion,N/A,N/A,Active
+Architecture Patterns,Code Splitting,React.lazy + Suspense,Pattern,Lazy loading for performance optimization,React,N/A,N/A,Active
+Architecture Patterns,Error Handling,Try-Catch + Error Boundaries,Pattern,Graceful error handling with user feedback,React Error Boundaries,N/A,N/A,Active
+Architecture Patterns,Type Safety,TypeScript,Pattern,Static typing throughout codebase,TypeScript 4.9.5,N/A,N/A,Active
+
+Data Flow,User Input → Form Validation,Step 1,Flow,User fills form → Zod validates → Updates WizardDataContext,react-hook-form | zod | WizardDataContext,N/A,N/A,Active
+Data Flow,Form Data → API Payload,Step 2,Flow,WizardDataContext → useUATWorkflow → Maps to API format,useUATWorkflow | altusApi,N/A,N/A,Active
+Data Flow,API Request → Backend,Step 3,Flow,altusApi submits to Altus backend → Returns ApplicationNumber,axios | Altus API,N/A,N/A,Active
+Data Flow,Document Upload → OCR,Step 4,Flow,File upload → Base64 encode → Optional OCR → Submit to API,Tesseract.js | altusApi,N/A,N/A,Active
+Data Flow,Status Tracking,Step 5,Flow,ApplicationNumber → Get status → Display timeline,altusApi | LoanStatusTracker,N/A,N/A,Active
+
+Key Features,Multi-Step Wizard,Loan Application Flow,Feature,5-step wizard: Calculator → Customer → Documents → Review → Confirmation,MultiStepWizard,N/A,N/A,Active
+Key Features,Loan Calculator,Amount/Tenure Calculator,Feature,Real-time loan calculation with product-specific rates,loanCalculator,N/A,N/A,Active
+Key Features,Document Upload,File Upload with Validation,Feature,Upload NRC payslips with OCR validation and PDF merging,docValidation | payslipMerger | nrcMerger,N/A,N/A,Active
+Key Features,Application Tracking,Status Tracking,Feature,Track application status by reference number,LoanStatusTracker | recentTracking,N/A,N/A,Active
+Key Features,Draft Auto-Save,LocalStorage Persistence,Feature,Auto-save wizard progress to resume later,draftStorage,N/A,N/A,Active
+Key Features,PDF Generation,Application Summary PDF,Feature,Generate downloadable PDF summary of application,applicationPdfGenerator,N/A,N/A,Active
+Key Features,API Testing,Developer Tools,Feature,Built-in API testing interface for debugging,APITesterComponent | apiTester,N/A,N/A,Active
+Key Features,CORS Debugging,Connectivity Testing,Feature,Test CORS and API connectivity,ApiConnectivityChecker | corsTestHelper,N/A,N/A,Active
+
+Production Setup,Frontend Server,Nginx on Docker,Infrastructure,Serves static React build on ports 80/443,nginx alpine | docker,N/A,N/A,Active
+Production Setup,Backend API,Altus Backend Services,Infrastructure,Microservices on ports 5010-5017,Altus proprietary,N/A,N/A,External
+Production Setup,Deployment Target,VPS Ubuntu,Infrastructure,VPS at 72.60.187.1 running Docker containers,Ubuntu | Docker,N/A,N/A,Active
+Production Setup,SSL/TLS,HTTPS via Nginx,Infrastructure,SSL certificates for https://applynow.altuszm.com,nginx | Let's Encrypt,N/A,N/A,Active
+Production Setup,Container Name,altus-loan-container,Infrastructure,Docker container running nginx + React app,docker,N/A,N/A,Active
+
+Recent Updates (Dec 2024),Bank Branch Fix,CustomerStep.tsx,Fix,Updated bank branch dropdown to match API accepted values (37 branches),Fixed FinancialInstitutionBranch validation error,Commit 637c287,~100 lines changed,Dec 3 2024
+Recent Updates (Dec 2024),API Structure Update,Multiple Files,Feature,Added Bank NextOfKin Reference fields to loan request,Enhanced customer data collection,Commit 00e8946,~700 lines changed,Dec 1 2024
+Recent Updates (Dec 2024),GitHub Repository,rndexponentbizolution-crypto/altus-lms-fe,Repository,Pushed to GitHub repository,Code versioning and collaboration,278 objects pushed,~26MB,Dec 3 2024
+
+Technical Debt,Build Directory in Git,build/,Issue,Build output is gitignored but referenced in docs,Should document build process not output,N/A,Low Priority,Known
+Technical Debt,Multiple Test Files,src/test/*,Issue,Various test approaches need consolidation,Standardize testing approach,N/A,Medium Priority,Known
+Technical Debt,Unused Imports,Various Files,Issue,ESLint warnings for unused imports,Clean up imports,~15 warnings,Low Priority,Known
+Technical Debt,API Ports Hardcoded,src/config/apiConfig.ts,Issue,API ports are hardcoded not environment vars,Use environment variables,N/A,Low Priority,Known
+
+Performance Metrics,Bundle Size,main.3aca9c72.js,Metric,Main bundle size (gzipped),webpack optimization,217.49 KB,Good,Current
+Performance Metrics,Total Bundle Size,All chunks,Metric,Total JavaScript size,Code splitting active,~500 KB gzipped,Good,Current
+Performance Metrics,Build Time,npm run build,Metric,Average production build time,react-scripts,~60 seconds,Acceptable,Current
+Performance Metrics,Lighthouse Score,Web Vitals,Metric,Performance accessibility best practices,Google Lighthouse,Not measured,Unknown,TBD
+
+Dependencies - Production,React,react@18.3.1,Library,UI library - core framework,facebook/react,Components | Hooks,N/A,Active
+Dependencies - Production,React DOM,react-dom@18.3.1,Library,React rendering for web,facebook/react,render | createRoot,N/A,Active
+Dependencies - Production,Material-UI,@mui/material@7.3.4,Library,Component library and design system,mui-org/material-ui,Components | Theme,N/A,Active
+Dependencies - Production,Material Icons,@mui/icons-material@7.3.4,Library,Icon set,mui-org/material-ui,Icons,N/A,Active
+Dependencies - Production,Emotion React,@emotion/react@11.14.0,Library,CSS-in-JS styling,emotion-js/emotion,styled | css,N/A,Active
+Dependencies - Production,Emotion Styled,@emotion/styled@11.14.1,Library,Styled components,emotion-js/emotion,styled,N/A,Active
+Dependencies - Production,React Router,react-router-dom@7.9.3,Library,Client-side routing,remix-run/react-router,BrowserRouter | Routes,N/A,Active
+Dependencies - Production,React Hook Form,react-hook-form@7.63.0,Library,Form state management,react-hook-form/react-hook-form,useForm | Controller,N/A,Active
+Dependencies - Production,Hookform Resolvers,@hookform/resolvers@5.2.2,Library,Validation resolvers for RHF,react-hook-form/resolvers,zodResolver,N/A,Active
+Dependencies - Production,Zod,zod@4.1.11,Library,Schema validation,colinhacks/zod,z.object | z.string,N/A,Active
+Dependencies - Production,Axios,axios@1.12.2,Library,HTTP client,axios/axios,axios.get | axios.post,N/A,Active
+Dependencies - Production,jsPDF,jspdf@3.0.3,Library,PDF generation,parallax/jsPDF,jsPDF,N/A,Active
+Dependencies - Production,Tesseract.js,tesseract.js@5.1.1,Library,OCR (Optical Character Recognition),naptha/tesseract.js,createWorker | recognize,N/A,Active
+Dependencies - Production,date-fns,date-fns@4.1.0,Library,Date utility functions,date-fns/date-fns,format | parse,N/A,Active
+Dependencies - Production,Day.js,dayjs@1.11.18,Library,Lightweight date library,iamkun/dayjs,dayjs,N/A,Active
+Dependencies - Production,classnames,classnames@2.5.1,Library,Conditional CSS class utility,JedWatson/classnames,classnames,N/A,Active
+Dependencies - Production,React Scripts,react-scripts@5.0.1,Tool,Create React App build scripts,facebook/create-react-app,build | start | test,N/A,Active
+
+Dependencies - Development,TypeScript,typescript@4.9.5,Language,Static type checking,microsoft/TypeScript,tsc,N/A,Active
+Dependencies - Development,React Types,@types/react@18.3.25,Types,TypeScript definitions for React,DefinitelyTyped,N/A,N/A,Active
+Dependencies - Development,React DOM Types,@types/react-dom@18.3.7,Types,TypeScript definitions for React DOM,DefinitelyTyped,N/A,N/A,Active
+Dependencies - Development,UUID Types,@types/uuid@10.0.0,Types,TypeScript definitions for UUID,DefinitelyTyped,N/A,N/A,Active
+Dependencies - Development,HTTP Proxy Middleware,http-proxy-middleware@3.0.5,Tool,Development proxy for API,chimurai/http-proxy-middleware,createProxyMiddleware,N/A,Active
+
+Security Considerations,CORS Configuration,setupProxy.js,Security,Development proxy handles CORS,Must configure in production nginx,N/A,N/A,Active
+Security Considerations,Input Sanitization,sanitize.ts,Security,Basic input sanitization,Should enhance for XSS prevention,N/A,Medium Priority,Active
+Security Considerations,File Upload Validation,docValidation.ts,Security,Validates file types and sizes,OCR verification for NRC,N/A,High Priority,Active
+Security Considerations,API Authentication,Bearer Token (Planned),Security,API requires bearer token authentication,Not yet implemented in frontend,N/A,High Priority,Planned
+Security Considerations,HTTPS Only,Nginx SSL,Security,Production enforces HTTPS,SSL certificates via Let's Encrypt,N/A,High Priority,Active
+Security Considerations,Environment Variables,REACT_APP_*,Security,Sensitive config via env vars,API URLs should not be hardcoded,N/A,Medium Priority,To Improve
+
+Browser Compatibility,Modern Browsers,Chrome Firefox Safari Edge,Support,Supports latest 2 versions of major browsers,Browserslist config in package.json,N/A,N/A,Active
+Browser Compatibility,Mobile Browsers,iOS Safari Android Chrome,Support,Responsive design for mobile,Material-UI responsive utilities,N/A,N/A,Active
+Browser Compatibility,Polyfills,React Scripts,Support,Automatic polyfills via react-scripts,Babel transpilation,N/A,N/A,Active
+Browser Compatibility,ES Modules,Modern JS,Support,Uses modern JavaScript features,TypeScript transpiles to ES5/ES6,N/A,N/A,Active

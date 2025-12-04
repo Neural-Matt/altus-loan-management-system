@@ -1,4 +1,5 @@
 # API Update Summary - Extended Loan Request Fields
+# API Update Summary - Extended Loan Request Fields
 
 ## 📋 Overview
 Updated the Altus Loan Management System API integration to include Bank Details, Next of Kin, and Reference/Referrer information in the loan request submission.
