@@ -93,10 +93,17 @@ export const DocumentsStep: React.FC = () => {
       
       if (!applicationNumber) {
         console.log('🚀 Step 1: Submitting loan application for approval...');
-        applicationNumber = await submitLoanApplication();
-        applicationNumberRef.current = applicationNumber; // Store for reuse
-        console.log('✅ Got ApplicationNumber:', applicationNumber);
-        console.log('⏳ Waiting for backend approval before document upload (storing locally)...');
+        try {
+          applicationNumber = await submitLoanApplication();
+          applicationNumberRef.current = applicationNumber; // Store for reuse
+          console.log('✅ Got ApplicationNumber:', applicationNumber);
+          console.log('⏳ Waiting for backend approval before document upload (storing locally)...');
+        } catch (loanError: any) {
+          console.error('❌ Loan submission failed:', loanError);
+          const errorMessage = loanError?.message || 'Loan submission failed';
+          push(`Loan submission failed: ${errorMessage}`, 'error');
+          throw loanError; // Re-throw to prevent document upload
+        }
       } else {
         console.log('♻️ Reusing existing ApplicationNumber:', applicationNumber);
       }

@@ -33,20 +33,68 @@ export interface LoanApplicationWorkflow {
 }
 
 export const useUATWorkflow = () => {
-  const { customer, loan } = useWizardData();
+  const { customer, loan, setCustomer, setLoan } = useWizardData();
   const { state } = useAltus();
 
   const submitLoanApplication = useCallback(async (): Promise<string> => {
     console.log('🚀 Starting UAT Loan Application Workflow...');
 
-    // Check if customer was created (optional now)
-    const customerId = customer.customerId || state.currentCustomer?.customerId;
+    let customerId = customer.customerId || state.currentCustomer?.customerId;
     
-    // Allow proceeding without customer creation - use form data directly
+    // For new customers, create customer first
     if (!customerId) {
-      console.log('⚠️ No CustomerID found - proceeding with form data only (TypeOfCustomer: New)');
+      console.log('👤 No CustomerID found - creating new customer first...');
+      
+      // Prepare customer creation data
+      const customerRequest = {
+        firstName: customer.firstName,
+        lastName: customer.lastName || customer.firstName, // Use firstName if lastName is empty
+        nrc: customer.nrc,
+        nrcIssueDate: customer.nrcIssueDate,
+        phoneNumber: customer.phone,
+        emailAddress: customer.email,
+        dateOfBirth: customer.dateOfBirth,
+        title: customer.title,
+        gender: customer.gender as "Male" | "Female",
+        nationality: customer.nationality === 'Other' ? customer.otherNationality || '' : customer.nationality || 'Zambian',
+        address: {
+          street: customer.address,
+          city: customer.city,
+          province: customer.province,
+          postalCode: customer.postalCode || "",
+          country: "Zambia"
+        },
+        preferredBranch: customer.preferredBranch,
+        bankDetails: {
+          bankName: customer.bankName,
+          accountNumber: customer.accountNumber,
+          accountType: customer.accountType,
+          branchCode: customer.bankBranch
+        }
+      };
+
+      try {
+        const createdCustomer = await altusApi.createRetailCustomer(customerRequest);
+        customerId = createdCustomer.outParams?.CustomerId || createdCustomer.customerId;
+        
+        if (!customerId) {
+          throw new Error('Customer creation succeeded but no CustomerID returned');
+        }
+        
+        console.log('✅ Customer created successfully, ID:', customerId);
+        
+        // Update wizard data with the CustomerID
+        setCustomer({
+          ...customer,
+          customerId: customerId,
+          apiCustomerData: createdCustomer
+        });
+      } catch (error) {
+        console.error('❌ Customer creation failed:', error);
+        throw error;
+      }
     } else {
-      console.log('✅ Customer ID available:', customerId);
+      console.log('✅ Using existing Customer ID:', customerId);
     }
 
     // Validate required customer data from form
@@ -64,19 +112,12 @@ export const useUATWorkflow = () => {
     }
 
     // Step 2: Submit loan request to get ApplicationNumber
-    // Using TypeOfCustomer "New" with all customer details from form
-    // This allows creating loan application even without prior customer creation
+    // Customer already created, so use TypeOfCustomer "Existing"
     const loanRequestData = {
-      TypeOfCustomer: "New",
-      customerId: customerId || "", // Empty if no customer created yet
+      TypeOfCustomer: "Existing",
+      CustomerId: customerId,
       
-      // Personal details for New customer (from form data)
-      firstName: customer.firstName || "",
-      middleName: "",
-      lastName: customer.lastName || "",
-      dateOfBirth: customer.dateOfBirth || "",
-      
-      // Identity and contact details
+      // Identity and contact details (required even for existing customers)
       identityNo: customer.nrc || "",
       contactNo: customer.phone || "",
       emailId: customer.email || "",
@@ -140,14 +181,25 @@ export const useUATWorkflow = () => {
     const loanResult = await altusApi.submitLoanRequest(loanRequestData) as UATResponse<LoanRequestResponse>;
     
     console.log('📋 Full Loan Request Response:', loanResult);
+    console.log('📋 Response Status:', loanResult.executionStatus);
+    console.log('📋 Response Message:', loanResult.executionMessage);
+    console.log('📋 Response outParams:', loanResult.outParams);
     
     if (loanResult.executionStatus !== 'Success' || !loanResult.outParams?.ApplicationNumber) {
       console.error('❌ Loan request failed:', loanResult);
+      console.error('❌ Error Message:', loanResult.executionMessage);
       throw new Error(`Loan request failed: ${loanResult.executionMessage || 'No ApplicationNumber returned'}`);
     }
 
     const applicationNumber = loanResult.outParams.ApplicationNumber;
     console.log('✅ Loan request submitted. ApplicationNumber:', applicationNumber);
+    
+    // Update wizard data with the ApplicationNumber
+    setLoan({
+      ...loan,
+      applicationNumber: applicationNumber
+    });
+    
     console.log('⏳ Note: Backend requires manual approval before ApplicationNumber becomes active for document uploads');
     console.log('📝 Documents will be stored locally and uploaded automatically after approval');
 

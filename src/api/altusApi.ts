@@ -633,11 +633,7 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
     // Check if API returned failure status
     if (response.data.executionStatus === 'Failure') {
       console.error('API returned failure:', response.data.executionMessage);
-      throw new AltusApiException({
-        message: response.data.executionMessage || 'Customer creation failed',
-        code: 'CUSTOMER_CREATION_FAILED',
-        details: { endpoint: 'API/CustomerServices/RetailCustomer', response: response.data }
-      });
+      throw new Error(response.data.executionMessage || 'Customer creation failed');
     }
 
     return response.data; // Return full UAT response
@@ -956,6 +952,12 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
     const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Salaried', uatRequest);
 
     console.log('Debug: Loan Request Response:', response.data);
+    
+    // Check for API failure
+    if (response.data.executionStatus === 'Failure') {
+      throw new Error(response.data.executionMessage || 'Loan request failed');
+    }
+    
     return response.data; // Return full UAT response
   } catch (error) {
     if (axios.isAxiosError(error)) {
