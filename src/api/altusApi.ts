@@ -1210,7 +1210,7 @@ export async function uploadLoanDocument(applicationNumber: string, documentType
     // UAT API request format (exact structure from documentation)
     const uatRequest = {
       body: {
-        ApplicationNumber: applicationNumber,
+        ApplicationNo: applicationNumber,
         TypeOfDocument: typeCode,
         DocumentNo: documentNo || `DOC${Date.now()}`,
         Document: {
