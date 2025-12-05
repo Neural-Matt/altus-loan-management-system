@@ -76,6 +76,7 @@ export interface LoanParams {
   productCode?: string;
   emiResult?: LoanCalculatorResult; // schedule rows now include opening/closing balances & installment
   applicationNumber?: string; // Altus ApplicationNumber returned after successful loan submission
+  applicationId?: string; // Alias for applicationNumber for easier access
 }
 
 export interface UploadedDoc {

@@ -11,6 +11,7 @@ import type {
   UploadDocumentResponse
 } from '../types/altus';
 import { CURRENT_API_CONFIG } from '../config/apiConfig';
+import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
 
 // API Configuration - Uses environment-aware config (proxy in prod, direct in dev)
 const ALTUS_BASE_URLS = {
@@ -614,12 +615,44 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
         NRCNumber: data.nrc,
         ContactNo: data.phoneNumber,
         EmailID: data.emailAddress,
-        BranchName: data.preferredBranch || data.address.province, // Use selected branch or default to province
+        BranchName: (() => {
+          const providedBranch = data.preferredBranch || data.address.province;
+          
+          // If valid, use as-is
+          if (isValidBranchName(providedBranch)) {
+            return providedBranch;
+          }
+          
+          // Try to find matching branch by partial name
+          const matchedBranch = getBranchByPartialMatch(providedBranch);
+          if (matchedBranch) {
+            return matchedBranch;
+          }
+          
+          // Fall back to province-based default
+          return getDefaultBranchForProvince(data.address.province);
+        })(),
         GenderName: data.gender,
         Title: data.title,
         DOB: formatDateForAltus(data.dateOfBirth),
         FinancialInstitutionName: data.bankDetails.bankName,
-        FinancialInstitutionBranchName: data.bankDetails.branchCode,
+        FinancialInstitutionBranchName: (() => {
+          const providedBranch = data.bankDetails.branchCode;
+          
+          // If valid, use as-is
+          if (isValidBranchName(providedBranch)) {
+            return providedBranch;
+          }
+          
+          // Try to find matching branch by partial name
+          const matchedBranch = getBranchByPartialMatch(providedBranch);
+          if (matchedBranch) {
+            return matchedBranch;
+          }
+          
+          // Fall back to province-based default
+          return getDefaultBranchForProvince(data.address.province);
+        })(),
         AccountNumber: data.bankDetails.accountNumber,
         AccountType: data.bankDetails.accountType
       }
@@ -947,10 +980,29 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
       console.log('Debug: Existing customer loan request - excluding personal details (FirstName, MiddleName, LastName, DateOfBirth)');
     }
 
+    // Validate branch name before sending
+    const branchName = uatRequest.body.FinancialInstitutionBranchName;
+    const isValidBranch = isValidBranchName(branchName);
+    console.log('🔐 API Layer Branch Validation:', {
+      branchName,
+      isValid: isValidBranch,
+      allValidBranches: [
+        "Head Office", "International Bank", "Lusaka Business Centre", 
+        "Cairo Business Centre", "Ndola Business Centre", "Kitwe Clearing Centre"
+        // ... (65 total branches available in ALTUS_VALID_BRANCHES)
+      ]
+    });
+
+    if (!isValidBranch) {
+      console.warn('⚠️ WARNING: Invalid branch being sent to API:', branchName);
+    }
+
     console.log('Debug: UAT Salaried Loan Request (Port 5013):', {
       typeOfCustomer,
       customerId: uatRequest.body.CustomerId,
-      includesPersonalDetails: isNewCustomer
+      includesPersonalDetails: isNewCustomer,
+      branchName,
+      isValidBranch
     });
     
     const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Salaried', uatRequest);

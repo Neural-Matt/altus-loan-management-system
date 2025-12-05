@@ -7,6 +7,8 @@ import { useCallback } from 'react';
 import altusApi from '../api/altusApi';
 import { useWizardData } from '../components/wizard/WizardDataContext';
 import { useAltus } from '../context/AltusContext';
+import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
+import { allValidBranches, isValidBranch } from '../constants/bankBranches';
 
 // UAT API Response Types
 interface UATResponse<T> {
@@ -33,7 +35,7 @@ export interface LoanApplicationWorkflow {
 }
 
 export const useUATWorkflow = () => {
-  const { customer, loan } = useWizardData();
+  const { customer, loan, setLoan } = useWizardData();
   const { state } = useAltus();
 
   const submitLoanApplication = useCallback(async (): Promise<string> => {
@@ -104,7 +106,30 @@ export const useUATWorkflow = () => {
       
       // Bank Details
       financialInstitutionName: customer.bankName || "",
-      financialInstitutionBranchName: customer.bankBranch || "",
+      financialInstitutionBranchName: (() => {
+        // Ensure branch is a valid ALTUS API branch name
+        const providedBranch = customer.bankBranch?.trim() || "";
+        
+        console.log('🔍 Bank Branch Validation:', { providedBranch, isValid: isValidBranchName(providedBranch) });
+        
+        // If valid, use as-is
+        if (isValidBranchName(providedBranch)) {
+          console.log('✅ Using provided branch:', providedBranch);
+          return providedBranch;
+        }
+        
+        // Try to find matching branch by partial name
+        const matchedBranch = getBranchByPartialMatch(providedBranch);
+        if (matchedBranch) {
+          console.log(`📍 Mapped "${providedBranch}" to valid branch: "${matchedBranch}"`);
+          return matchedBranch;
+        }
+        
+        // Fall back to province-based default
+        const defaultBranch = getDefaultBranchForProvince(customer.province || "");
+        console.log(`📍 Using default branch for province "${customer.province}": "${defaultBranch}"`);
+        return defaultBranch;
+      })(),
       accountNumber: customer.accountNumber || "",
       accountType: customer.accountType || "",
       
@@ -131,12 +156,33 @@ export const useUATWorkflow = () => {
       identityNo: loanRequestData.identityNo,
       loanAmount: loanRequestData.loanAmount,
       tenure: loanRequestData.tenure,
+      bankName: loanRequestData.financialInstitutionName,
+      bankBranch: loanRequestData.financialInstitutionBranchName,
       hasPersonalDetails: true,
       hasAddressDetails: !!(loanRequestData.primaryAddress && loanRequestData.provinceName),
       hasBankDetails: !!(loanRequestData.financialInstitutionName && loanRequestData.accountNumber),
       hasNextOfKin: !!loanRequestData.kinName,
       hasReference: !!loanRequestData.referrerName
     });
+    
+    // ============================================================================
+    // CRITICAL VALIDATION GUARD - Validate branch name against ALTUS 37 branches
+    // ============================================================================
+    console.log('🔒 Final branch being sent to ALTUS →', loanRequestData.financialInstitutionBranchName);
+    
+    if (!isValidBranch(loanRequestData.financialInstitutionBranchName)) {
+      const errorMessage = `❌ Invalid branch selected: "${loanRequestData.financialInstitutionBranchName}". Must be one of the 37 exact ALTUS branch names.`;
+      console.error(errorMessage);
+      console.error('📋 Valid branches:', allValidBranches);
+      throw new Error(
+        `Invalid branch name: "${loanRequestData.financialInstitutionBranchName}". ` +
+        `ALTUS only accepts these exact branch names: ${allValidBranches.slice(0, 5).join(', ')}... (37 total). ` +
+        `Please select a valid branch from the dropdown.`
+      );
+    }
+    
+    console.log('✅ Branch validation passed:', loanRequestData.financialInstitutionBranchName);
+    
     const loanResult = await altusApi.submitLoanRequest(loanRequestData) as UATResponse<LoanRequestResponse>;
     
     console.log('📋 Full Loan Request Response:', loanResult);
@@ -150,6 +196,13 @@ export const useUATWorkflow = () => {
     console.log('✅ Loan request submitted. ApplicationNumber:', applicationNumber);
     console.log('⏳ Note: Backend requires manual approval before ApplicationNumber becomes active for document uploads');
     console.log('📝 Documents will be stored locally and uploaded automatically after approval');
+
+    // Save applicationNumber to wizard context
+    setLoan({
+      ...loan,
+      applicationNumber,
+      applicationId: applicationNumber // Alias for easier access
+    });
 
     return applicationNumber;
   }, [customer, loan, state]);
