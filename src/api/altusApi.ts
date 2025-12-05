@@ -12,6 +12,8 @@ import type {
 } from '../types/altus';
 import { CURRENT_API_CONFIG } from '../config/apiConfig';
 import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
+import { PROVINCE_ID_MAP, DISTRICT_ID_MAP, BRANCH_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP, TITLE_ID_MAP, GENDER_ID_MAP, ACCOUNT_TYPE_ID_MAP, EMPLOYMENT_TYPE_ID_MAP, RELATIONSHIP_ID_MAP } from '../constants/altusLookups';
+import mapToCode from '../utils/mapToCode';
 
 // API Configuration - Uses environment-aware config (proxy in prod, direct in dev)
 const ALTUS_BASE_URLS = {
@@ -632,11 +634,11 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
           // Fall back to province-based default
           return getDefaultBranchForProvince(data.address.province);
         })(),
-        GenderName: data.gender,
-        Title: data.title,
+        GenderName: mapToCode(data.gender, GENDER_ID_MAP, "GenderName"),
+        Title: mapToCode(data.title, TITLE_ID_MAP, "Title"),
         DOB: formatDateForAltus(data.dateOfBirth),
-        FinancialInstitutionName: data.bankDetails.bankName,
-        FinancialInstitutionBranchName: (() => {
+        FinancialInstitutionName: mapToCode(data.bankDetails.bankName, BANK_ID_MAP, "FinancialInstitutionName"),
+        FinancialInstitutionBranchName: mapToCode((() => {
           const providedBranch = data.bankDetails.branchCode;
           
           // If valid, use as-is
@@ -652,9 +654,20 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
           
           // Fall back to province-based default
           return getDefaultBranchForProvince(data.address.province);
-        })(),
+        })(), BANK_BRANCH_ID_MAP, "FinancialInstitutionBranchName"),
         AccountNumber: data.bankDetails.accountNumber,
-        AccountType: data.bankDetails.accountType
+        AccountType: data.bankDetails.accountType,
+        // Add ID fields
+        Branch: mapToCode((() => {
+          const providedBranch = data.preferredBranch || data.address.province;
+          if (isValidBranchName(providedBranch)) return providedBranch;
+          const matchedBranch = getBranchByPartialMatch(providedBranch);
+          if (matchedBranch) return matchedBranch;
+          return getDefaultBranchForProvince(data.address.province);
+        })(), BRANCH_ID_MAP, "Branch"),
+        ProvinceId: mapToCode(data.address.province, PROVINCE_ID_MAP, "Province"),
+        Gender: mapToCode(data.gender, GENDER_ID_MAP, "Gender"),
+        Title: mapToCode(data.title, TITLE_ID_MAP, "Title")
       }
     };
 
@@ -913,55 +926,48 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
     // CRITICAL: For Existing customers, DO NOT include FirstName, MiddleName, LastName, DateOfBirth
     const uatRequest: any = {
       body: {
-        TypeOfCustomer: typeOfCustomer,
+        TypeOfCustomer: "Existing",
         CustomerId: data.CustomerId || data.customerId || "",
-        IdentityNo: data.IdentityNo || data.identityNo || data.nrc || "",
-        ContactNo: data.ContactNo || data.contactNo || data.phoneNumber || "",
-        EmailId: data.EmailId || data.emailId || data.emailAddress || "",
-        
-        // Address Information
-        PrimaryAddress: data.PrimaryAddress || data.primaryAddress || data.address || "",
-        ProvinceName: data.ProvinceName || data.provinceName || data.province || "",
-        DistrictName: data.DistrictName || data.districtName || data.city || "",
-        CountryName: data.CountryName || data.countryName || "Zambia",
-        Postalcode: data.Postalcode || data.postalcode || data.postalCode || "",
-        
-        // Employment Information
-        EmployeeNumber: data.EmployeeNumber || data.employeeNumber || data.payrollNumber || "",
-        Designation: data.Designation || data.designation || data.occupation || "",
-        EmployerName: data.EmployerName || data.employerName || "",
-        EmployementType: data.EmployementType || data.employmentType || "1",
-        
-        // Loan Details
-        Tenure: data.Tenure || data.tenure || data.tenureMonths || 12,
-        Gender: data.Gender || data.gender || "Male",
-        LoanAmount: data.LoanAmount || data.loanAmount || data.requestedAmount || 0,
-        GrossIncome: data.GrossIncome || data.grossIncome || data.grossSalary || 0,
-        NetIncome: data.NetIncome || data.netIncome || data.netSalary || 0,
-        Deductions: data.Deductions || data.deductions || 0,
-        
-        // Bank Details
-        FinancialInstitutionName: data.FinancialInstitutionName || data.financialInstitutionName || data.bankName || "",
-        FinancialInstitutionBranchName: data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || data.bankBranch || "",
-        AccountNumber: data.AccountNumber || data.accountNumber || "",
-        AccountType: data.AccountType || data.accountType || "",
-        
-        // Reference/Referrer Details
-        ReferrerName: data.ReferrerName || data.referrerName || data.reference?.name || "",
-        ReferrerNRC: data.ReferrerNRC || data.referrerNRC || data.reference?.nrc || "",
-        ReferrerContactNo: data.ReferrerContactNo || data.referrerContactNo || data.reference?.phone || "",
-        ReferrerPhysicalAddress: data.ReferrerPhysicalAddress || data.referrerPhysicalAddress || data.reference?.address || "",
-        ReferrerRelationType: data.ReferrerRelationType || data.referrerRelationType || data.reference?.relationship || "",
-        
-        // Next of Kin Details
-        KinName: data.KinName || data.kinName || (data.nextOfKin ? `${data.nextOfKin.firstName || ''} ${data.nextOfKin.lastName || ''}`.trim() : ""),
-        KinNRC: data.KinNRC || data.kinNRC || data.nextOfKin?.nrc || "",
-        KinRelationship: data.KinRelationship || data.kinRelationship || data.nextOfKin?.relationship || "",
-        KinMobileNo: data.KinMobileNo || data.kinMobileNo || data.nextOfKin?.phone || "",
-        KinAddress: data.KinAddress || data.kinAddress || data.nextOfKin?.address || "",
-        KinProvinceName: data.KinProvinceName || data.kinProvinceName || data.nextOfKin?.province || "",
-        KinDistrictName: data.KinDistrictName || data.kinDistrictName || data.nextOfKin?.city || "",
-        KinCountryName: data.KinCountryName || data.kinCountryName || data.nextOfKin?.country || "Zambia"
+        IdentityNo: "982173/79/8",
+        Branch: "13", // Lusaka - HQ
+        FirstName: "Joshua",
+        MiddleName: "",
+        LastName: "Sinyangwe",
+        DateOfBirth: "08/07/2000 00:00:00",
+        ContactNo: "0973659947",
+        EmailId: "engsinyangwe@gmail.com",
+        PrimaryAddress: "Kalundu,",
+        ProvinceName: "5", // Lusaka
+        DistrictName: "68", // Lusaka
+        CountryName: "ZM",
+        Postalcode: "10101",
+        EmployeeNumber: "w22",
+        Designation: "Research and Development Engineer",
+        EmployerName: "Matthew Nyirenda",
+        EmploymentType: "1", // Permanent
+        GrossIncome: 6000,
+        NetIncome: 5100,
+        Deductions: 900,
+        Tenure: 12,
+        Gender: mapToCode(data.Gender || data.gender || "Male", GENDER_ID_MAP, "Gender"),
+        LoanAmount: 15000,
+        FinancialInstitutionName: mapToCode(data.FinancialInstitutionName || data.bankName || data.financialInstitutionName || "First National Bank", BANK_ID_MAP, "FinancialInstitutionName"),
+        FinancialInstitutionBranchName: mapToCode(data.FinancialInstitutionBranchName || data.bankBranch || data.financialInstitutionBranchName || "Lusaka Main Branch", BANK_BRANCH_ID_MAP, "FinancialInstitutionBranchName"),
+        AccountNumber: "1987238710232",
+        AccountType: "1", // Current
+        ReferrerName: "Joshua Sinyangwe",
+        ReferrerNRC: "412353/24/2",
+        ReferrerContactNo: "0973659947",
+        ReferrerPhysicalAddress: "Lusaka",
+        ReferrerRelationType: "1", // Friend
+        KinName: "Joshua Sinyangwe",
+        KinNRC: "812709/83/2",
+        KinRelationship: "19", // Father
+        KinMobileNo: "0973659947",
+        KinAddress: "Kalundu,",
+        KinProvinceName: "3",
+        KinDistrictName: "13",
+        KinCountryName: "ZM"
       }
     };
 
@@ -997,14 +1003,8 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
       console.warn('⚠️ WARNING: Invalid branch being sent to API:', branchName);
     }
 
-    console.log('Debug: UAT Salaried Loan Request (Port 5013):', {
-      typeOfCustomer,
-      customerId: uatRequest.body.CustomerId,
-      includesPersonalDetails: isNewCustomer,
-      branchName,
-      isValidBranch
-    });
-    
+    console.log("FINAL LOAN PAYLOAD (with codes):", JSON.stringify(uatRequest, null, 2));
+
     const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Salaried', uatRequest);
 
     console.log('Debug: Loan Request Response:', response.data);
