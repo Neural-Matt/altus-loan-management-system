@@ -667,7 +667,7 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
         })(), BRANCH_ID_MAP, "Branch"),
         ProvinceId: mapToCode(data.address.province, PROVINCE_ID_MAP, "Province"),
         Gender: mapToCode(data.gender, GENDER_ID_MAP, "Gender"),
-        Title: mapToCode(data.title, TITLE_ID_MAP, "Title")
+        TitleId: mapToCode(data.title, TITLE_ID_MAP, "Title")
       }
     };
 
