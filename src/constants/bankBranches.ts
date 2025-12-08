@@ -80,10 +80,11 @@ export type ValidBranchName = typeof allValidBranches[number];
 /**
  * Mapping of Zambian banks to their ALTUS-accepted branch names.
  * Updated with proper bank-branch associations based on ALTUS API mappings.
+ * Keys are ALTUS FinancialInstitutionId values for direct API compatibility.
  */
 export const bankBranchMap = {
   // ZNBS - Zambia National Building Society
-  'ZNBS': [
+  'BNK20201490000000622': [
     'Banking Society Business Park',
     'Mufulira',
     'Mpika',
@@ -109,7 +110,7 @@ export const bankBranchMap = {
   ],
 
   // AB Bank
-  'AB Bank': [
+  'BNK20200430000000002': [
     'Head Office',
     'Cairo Main',
     'Chilenje',
@@ -121,7 +122,7 @@ export const bankBranchMap = {
   ],
 
   // Access Bank
-  'Access Bank': [
+  'BNK20200430000000006': [
     'Head Office',
     'Cairo Road',
     'Longacres',
@@ -131,7 +132,7 @@ export const bankBranchMap = {
     'Kitwe',
     'Solwezi'
   ],
-  'Access Bank Zambia Limited': [
+  'BNK20203020000000662': [
     'Head Office',
     'Northend',
     'Longacres',
@@ -148,18 +149,18 @@ export const bankBranchMap = {
   ],
 
   // Atlas Mara Bank
-  'Atlas Mara Bank': [
+  'BNK20200430000000007': [
     'Lusaka'
   ],
 
   // Bank of China
-  'Bank of China': [
+  'BNK20200430000000008': [
     'Lusaka',
     'Kitwe'
   ],
 
   // ABSA Bank
-  'ABSA Zambia': [
+  'BNK20200440000000035': [
     'Head Office',
     'Head Office - Elunda',
     'Lusaka - Kamwala',
@@ -217,7 +218,7 @@ export const bankBranchMap = {
     'Mumbwa',
     'Levy'
   ],
-  'Absa': [
+  'BNK20200830000000616': [
     'Petauke Branch',
     'Manda Hill Branch',
     'Matero Branch',
@@ -229,7 +230,7 @@ export const bankBranchMap = {
   ],
 
   // Cavmont Bank
-  'Cavmont Bank': [
+  'BNK20200440000000036': [
     'Head Office',
     'Lusaka Square',
     'Lusaka South End',
@@ -243,27 +244,27 @@ export const bankBranchMap = {
   ],
 
   // Citibank Zambia
-  'Citibank Zambia': [
+  'BNK20200450000000043': [
     'Lusaka'
   ],
 
   // Ecobank
-  'Ecobank': [
+  'BNK20200450000000044': [
     'Lusaka'
   ],
 
   // First Alliance Bank
-  'First Alliance Bank': [
+  'BNK20200450000000046': [
     'Lusaka'
   ],
 
   // First Capital Bank
-  'First Capital Bank': [
+  'BNK20200450000000049': [
     'Lusaka'
   ],
 
   // First National Bank - Most comprehensive branch network
-  'First National Bank': [
+  'BNK20200480000000053': [
     'Commercial Suite',
     'Industrial',
     'FNB Operation Centre',
@@ -343,27 +344,27 @@ export const bankBranchMap = {
   ],
 
   // Indo Zambia Bank
-  'Indo Zambia Bank': [
+  'BNK20200520000000062': [
     'Lusaka'
   ],
 
   // Intermarket Banking Corporation
-  'Intermarket Banking Corporation': [
+  'BNK20200520000000065': [
     'Lusaka'
   ],
 
   // Investrust Bank
-  'Investrust Bank': [
+  'BNK20200550000000081': [
     'Lusaka'
   ],
 
   // National Savings and Credit Bank
-  'National Savings and Credit Bank': [
+  'BNK20200760000000614': [
     'Cosmopolitan'
   ],
 
   // Natsave
-  'Natsave': [
+  'BNK20201490000000621': [
     'Chama',
     'Chavuma',
     'Chilubi Island',
@@ -407,12 +408,12 @@ export const bankBranchMap = {
   ],
 
   // New Bank
-  'New Bank': [
+  'BNK20200690000000253': [
     'Lusaka'
   ],
 
   // Stanbic Bank Zambia
-  'Stanbic Bank Zambia': [
+  'BNK20200590000000113': [
     'Lusaka'
   ],
   'Stanbic Bank': [
@@ -423,7 +424,7 @@ export const bankBranchMap = {
   ],
 
   // Standard Chartered Bank Zambia
-  'Standard Chartered Bank Zambia': [
+  'BNK20200590000000119': [
     'Lusaka'
   ],
   'Standard Chartered': [
@@ -431,27 +432,27 @@ export const bankBranchMap = {
   ],
 
   // The United Bank of Zambia
-  'The United Bank of Zambia': [
+  'BNK20200590000000120': [
     'Lusaka'
   ],
 
   // United Bank for Africa
-  'United Bank for Africa': [
+  'BNK20200590000000121': [
     'Lusaka'
   ],
 
   // Zambia Industrial Commercial Bank
-  'Zambia Industrial Commercial Bank': [
+  'BNK20200590000000122': [
     'Lusaka'
   ],
 
   // Bayport Financial Services
-  'Bayport Financial Services': [
+  'BNK20213160000000663': [
     'Lusaka Business Centre'
   ],
 
   // FAB
-  'FAB': [
+  'BNK20222300000000664': [
     'Lusaka Main Branch'
   ]
 } as const satisfies Record<string, readonly string[]>;
@@ -548,10 +549,10 @@ export const isValidBranch = (branchName: string): boolean => {
 };
 
 /**
- * Get branches for a specific bank
+ * Get branches for a specific bank using ALTUS FinancialInstitutionId
  */
-export const getBranchesForBank = (bankName: string): readonly string[] => {
-  return bankBranchMap[bankName as BankName] || allValidBranches;
+export const getBranchesForBank = (bankId: string): readonly string[] => {
+  return bankBranchMap[bankId as BankName] || allValidBranches;
 };
 
 /**
@@ -573,18 +574,17 @@ export const searchBranches = (query: string, bankName?: string): string[] => {
 };
 
 /**
- * Check if a bank is FNB (fully validated by ALTUS)
+ * Check if a bank is FNB using ALTUS FinancialInstitutionId
  */
-export const isFNBBank = (bankName: string): boolean => {
-  const fnbVariants = ['First National Bank', 'FNB', 'First National Bank Zambia'];
-  return fnbVariants.includes(bankName);
+export const isFNBBank = (bankId: string): boolean => {
+  return bankId === 'BNK20200480000000053'; // FNB ALTUS ID
 };
 
 /**
- * Get validation warning for non-FNB banks
+ * Get validation warning for non-FNB banks using ALTUS ID
  */
-export const getNonFNBWarning = (bankName: string): string | null => {
-  if (isFNBBank(bankName)) {
+export const getNonFNBWarning = (bankId: string): string | null => {
+  if (isFNBBank(bankId)) {
     return null;
   }
   return `⚠️ Warning: Only FNB branches are fully validated by ALTUS API. Other banks may cause validation errors. We recommend using FNB for guaranteed approval.`;

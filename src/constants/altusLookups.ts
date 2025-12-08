@@ -248,7 +248,7 @@ export const BANK_BRANCH_ID_MAP: Record<string, string> = {
   "Ndola Operations Processing Centre": "BRH20200760000000277",
   "Masala": "BRH20200760000000278",
   "Kitwe Business Centre ABSA": "BRH20200760000000279",
-  "Chimwemwe": "BRH20200760000000280",
+  "Chimwemwe ABSA": "BRH20200760000000280",
   "Parklands Center": "BRH20200760000000281",
   "Kitwe Operations Processing Centre": "BRH20200760000000282",
   "Chingola & Prestige": "BRH20200760000000283",
@@ -389,8 +389,7 @@ export const BANK_BRANCH_ID_MAP: Record<string, string> = {
   "Mbala Main Branch": "BRH20243230000000127",
   "Ndola Main Branch": "BRH20243230000000128",
   "City Mall Branch - Solwezi": "BRH20243230000000129",
-  "Solwezi Main Branch": "BRH20243230000000130"
-};
+  "Solwezi Main Branch": "BRH20243230000000130",
   "Stanbic Bank Zambia": "BNK20200480000000055",
   "ABSA Bank": "BNK20200480000000056",
   "ABSA": "BNK20200480000000056",
@@ -410,37 +409,6 @@ export const BANK_BRANCH_ID_MAP: Record<string, string> = {
   "Nedbank": "BNK20200480000000063",
   "Indo Zambia Bank": "BNK20200480000000064",
   "Indo Zambia": "BNK20200480000000064"
-};
-
-export const BANK_BRANCH_ID_MAP: Record<string, string> = {
-  "Lusaka Main Branch": "BRH20201920000000645",
-  "Lusaka": "BRH20201920000000645",
-  "Lusaka - HQ": "BRH20201920000000645",
-  "Head Office": "BRH20201920000000645",
-  "Ndola Main Branch": "BRH20201920000000646",
-  "Ndola": "BRH20201920000000646",
-  "Kitwe Main Branch": "BRH20201920000000647",
-  "Kitwe": "BRH20201920000000647",
-  "Chingola Main Branch": "BRH20201920000000648",
-  "Chingola": "BRH20201920000000648",
-  "Kabwe Main Branch": "BRH20201920000000649",
-  "Kabwe": "BRH20201920000000649",
-  "Livingstone Main Branch": "BRH20201920000000650",
-  "Livingstone": "BRH20201920000000650",
-  "Chipata Main Branch": "BRH20201920000000651",
-  "Chipata": "BRH20201920000000651",
-  "Kasama Main Branch": "BRH20201920000000652",
-  "Kasama": "BRH20201920000000652",
-  "Solwezi Main Branch": "BRH20201920000000653",
-  "Solwezi": "BRH20201920000000653",
-  "Mufulira Main Branch": "BRH20201920000000654",
-  "Mufulira": "BRH20201920000000654",
-  "Cairo Business Centre": "BRH20201920000000655",
-  "Cairo": "BRH20201920000000655",
-  "Manda Hill": "BRH20201920000000656",
-  "Manda Hill Branch": "BRH20201920000000656",
-  "Lusaka Business Centre": "BRH20201920000000657",
-  "Ndola Business Centre": "BRH20201920000000658"
 };
 
 export const TITLE_ID_MAP: Record<string, string> = {
@@ -485,7 +453,6 @@ export const RELATIONSHIP_ID_MAP: Record<string, string> = {
   "Brother": "11",
   "Stepmother": "12",
   "Mother": "13",
-  "Husband": "14",
   "Girlfriend": "15",
   "Boyfriend": "16",
   "Bride": "17",
@@ -586,7 +553,7 @@ export const DISTRICT_SEQUENTIAL_MAP: Record<string, string> = {
   "Samfya": "12",
 
   // Muchinga Province districts
-  "Chama": "1",
+  "Chama (Muchinga)": "1",
   "Chinsali": "2",
   "Isoka": "3",
   "Kanchibiya": "4",
@@ -626,7 +593,7 @@ export const DISTRICT_SEQUENTIAL_MAP: Record<string, string> = {
   // Southern Province districts
   "Choma": "1",
   "Gwembe": "2",
-  "Itezhi-tezhi": "3",
+  "Itezhi-tezhi (Southern)": "3",
   "Kalomo": "4",
   "Kazungula": "5",
   "Livingstone": "6",

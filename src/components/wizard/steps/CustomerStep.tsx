@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema, CustomerFormValues } from '../../../validation/schemas';
-import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem, Autocomplete, TextField, Chip, Tooltip, Alert } from '@mui/material';
+import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem, Autocomplete, TextField, Chip, Tooltip } from '@mui/material';
 import { FormTextField } from '../../form/FormTextField';
 import { FormNRCField } from '../../form/FormNRCField';
 import { useWizardData } from '../WizardDataContext';
@@ -10,10 +10,9 @@ import { useAltus } from '../../../context/AltusContext';
 import { useSnackbar } from '../../feedback/SnackbarProvider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import WarningIcon from '@mui/icons-material/Warning';
-import { getAllBankNames, getBranchesForBank, getBranchGroup, allValidBranches, isFNBBank, getNonFNBWarning } from '../../../constants/bankBranches';
+import { getBranchesForBank, getBranchGroup, allValidBranches } from '../../../constants/bankBranches';
 import { provinces, citiesByProvince, branchByProvince, getCitiesForProvince, getBranchesForProvince } from '../../../constants/locationConstants';
-import { RELATIONSHIP_ID_MAP } from '../../../constants/altusLookups';
+import { RELATIONSHIP_ID_MAP, BANK_ID_MAP } from '../../../constants/altusLookups';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -21,6 +20,22 @@ export const CustomerStep: React.FC = () => {
   const { push } = useSnackbar();
   const [openKin, setOpenKin] = React.useState(true);
   const [openRef, setOpenRef] = React.useState(false);
+
+  // Helper function to get human-readable bank names for display
+  const getBankDisplayNames = (): string[] => {
+    return Object.values(BANK_ID_MAP);
+  };
+
+  // Helper function to convert bank display name to ALTUS ID
+  const getBankIdFromName = (bankName: string): string => {
+    const entry = Object.entries(BANK_ID_MAP).find(([id, name]) => name === bankName);
+    return entry ? entry[0] : '';
+  };
+
+  // Helper function to convert ALTUS ID to bank display name
+  const getBankNameFromId = (bankId: string): string => {
+    return BANK_ID_MAP[bankId] || '';
+  };
 
   const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
     defaultValues: {
@@ -168,7 +183,7 @@ export const CustomerStep: React.FC = () => {
           address: values.nextOfKin?.address
         },
         bankDetails: {
-          bankName: values.bankName,
+          bankName: getBankIdFromName(values.bankName) || values.bankName, // Convert to ALTUS ID
           accountNumber: values.accountNumber,
           accountType: values.accountType,
           branchCode: values.bankBranch
@@ -477,18 +492,17 @@ export const CustomerStep: React.FC = () => {
                 render={({ field, fieldState: { error } }) => (
                   <Autocomplete
                     {...field}
-                    options={getAllBankNames()}
+                    options={getBankDisplayNames()}
                     value={field.value || null}
                     onChange={(_, newValue) => {
                       field.onChange(newValue || '');
                       // Reset branch when bank changes
                       if (newValue !== field.value) {
                         const currentBranch = watch('bankBranch');
-                        const newBranches = selectedProvince 
-                          ? getBranchesForProvince(selectedProvince)
-                          : allValidBranches;
+                        const bankId = getBankIdFromName(newValue || '');
+                        const newBranches = bankId ? getBranchesForBank(bankId) : allValidBranches;
                         if (!newBranches.includes(currentBranch as any)) {
-                          // Clear branch if it's not valid for the new province
+                          // Clear branch if it's not valid for the new bank
                           reset({ ...watch(), bankBranch: '' });
                         }
                       }
@@ -509,14 +523,7 @@ export const CustomerStep: React.FC = () => {
               />
             </Box>
             
-            {/* Show warning if non-FNB bank is selected */}
-            {selectedBankName && !isFNBBank(selectedBankName) && (
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <Alert severity="warning" icon={<WarningIcon />}>
-                  {getNonFNBWarning(selectedBankName)}
-                </Alert>
-              </Box>
-            )}
+            {/* FNB warning removed as requested */}
             
             {/* Bank Branch - Autocomplete filtered by province */}
             <Box>
@@ -529,12 +536,8 @@ export const CustomerStep: React.FC = () => {
                     ? getBranchesForProvince(selectedProvince)
                     : allValidBranches;
                   
-                  // For FNB, further filter by bank
-                  const availableBranches = selectedBankName && isFNBBank(selectedBankName)
-                    ? provinceFilteredBranches.filter(branch => 
-                        getBranchesForBank(selectedBankName).includes(branch as any)
-                      )
-                    : provinceFilteredBranches;
+                  // Filter branches by province
+                  const availableBranches = provinceFilteredBranches;
                   
                   return (
                     <Autocomplete
