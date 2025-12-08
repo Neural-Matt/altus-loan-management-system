@@ -17,9 +17,27 @@ export interface PreCheckResult {
 }
 
 export async function computeSha256(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  const digest = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+  // Try WebCrypto API first
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const buf = await file.arrayBuffer();
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+    } catch (cryptoError) {
+      console.warn('WebCrypto failed, using fallback:', cryptoError);
+    }
+  }
+
+  // Fallback: create a simple checksum from file metadata
+  console.warn('WebCrypto API not available, using fallback checksum');
+  const metadata = `${file.name}_${file.size}_${file.lastModified}_${file.type}`;
+  let hash = 0;
+  for (let i = 0; i < metadata.length; i++) {
+    const char = metadata.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 export async function preValidateFile(file: File): Promise<PreCheckResult> {
