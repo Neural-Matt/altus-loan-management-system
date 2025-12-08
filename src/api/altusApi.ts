@@ -12,7 +12,7 @@ import type {
 } from '../types/altus';
 import { CURRENT_API_CONFIG } from '../config/apiConfig';
 import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
-import { PROVINCE_ID_MAP, DISTRICT_ID_MAP, BRANCH_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP, TITLE_ID_MAP, GENDER_ID_MAP, ACCOUNT_TYPE_ID_MAP, EMPLOYMENT_TYPE_ID_MAP, RELATIONSHIP_ID_MAP } from '../constants/altusLookups';
+import { PROVINCE_ID_MAP, DISTRICT_ID_MAP, DISTRICT_SEQUENTIAL_MAP, BRANCH_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP, TITLE_ID_MAP, GENDER_ID_MAP, ACCOUNT_TYPE_ID_MAP, EMPLOYMENT_TYPE_ID_MAP, RELATIONSHIP_ID_MAP, COUNTRY_CODE_MAP, PROVINCE_CODE_MAP } from '../constants/altusLookups';
 import mapToCode from '../utils/mapToCode';
 
 // API Configuration - Uses environment-aware config (proxy in prod, direct in dev)
@@ -926,65 +926,60 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
     // CRITICAL: For Existing customers, DO NOT include FirstName, MiddleName, LastName, DateOfBirth
     const uatRequest: any = {
       body: {
-        TypeOfCustomer: "Existing",
+        TypeOfCustomer: data.TypeOfCustomer || data.typeOfCustomer || "Existing",
         CustomerId: data.CustomerId || data.customerId || "",
-        IdentityNo: "982173/79/8",
-        Branch: "13", // Lusaka - HQ
-        FirstName: "Joshua",
-        MiddleName: "",
-        LastName: "Sinyangwe",
-        DateOfBirth: "08/07/2000 00:00:00",
-        ContactNo: "0973659947",
-        EmailId: "engsinyangwe@gmail.com",
-        PrimaryAddress: "Kalundu,",
-        ProvinceName: "5", // Lusaka
-        DistrictName: "68", // Lusaka
-        CountryName: "ZM",
-        Postalcode: "10101",
-        EmployeeNumber: "w22",
-        Designation: "Research and Development Engineer",
-        EmployerName: "Matthew Nyirenda",
-        EmploymentType: "1", // Permanent
-        GrossIncome: 6000,
-        NetIncome: 5100,
-        Deductions: 900,
-        Tenure: 12,
+        IdentityNo: data.IdentityNo || data.identityNo || "",
+        Branch: mapToCode(data.Branch || "Lusaka - HQ", BRANCH_ID_MAP, "Branch"),
+        FirstName: data.FirstName || data.firstName || "",
+        MiddleName: data.MiddleName || data.middleName || "",
+        LastName: data.LastName || data.lastName || "",
+        DateOfBirth: data.DateOfBirth || data.dateOfBirth ? formatDateForAltus(data.DateOfBirth || data.dateOfBirth) : "",
+        ContactNo: data.ContactNo || data.contactNo || "",
+        EmailId: data.EmailId || data.emailId || "",
+        PrimaryAddress: data.PrimaryAddress || data.primaryAddress || "",
+        ProvinceName: mapToCode((data.ProvinceName || data.provinceName || "Lusaka").replace(" Province", ""), PROVINCE_ID_MAP, "Province"),
+        DistrictName: mapToCode(data.DistrictName || data.districtName || "Lusaka", DISTRICT_SEQUENTIAL_MAP, "District"),
+        CountryName: mapToCode(data.CountryName || data.countryName || "Zambia", COUNTRY_CODE_MAP, "Country"),
+        Postalcode: data.Postalcode || data.postalcode || "",
+        EmployeeNumber: data.EmployeeNumber || data.employeeNumber || "",
+        Designation: data.Designation || data.designation || "",
+        EmployerName: data.EmployerName || data.employerName || "",
+        EmploymentType: mapToCode(data.EmploymentType || data.employmentType || "Permanent", EMPLOYMENT_TYPE_ID_MAP, "EmploymentType"),
+        GrossIncome: data.GrossIncome || data.grossIncome || 0,
+        NetIncome: data.NetIncome || data.netIncome || 0,
+        Deductions: data.Deductions || data.deductions || 0,
+        Tenure: data.Tenure || data.tenure || 12,
         Gender: mapToCode(data.Gender || data.gender || "Male", GENDER_ID_MAP, "Gender"),
-        LoanAmount: 15000,
-        FinancialInstitutionName: mapToCode(data.FinancialInstitutionName || data.bankName || data.financialInstitutionName || "First National Bank", BANK_ID_MAP, "FinancialInstitutionName"),
-        FinancialInstitutionBranchName: mapToCode(data.FinancialInstitutionBranchName || data.bankBranch || data.financialInstitutionBranchName || "Lusaka Main Branch", BANK_BRANCH_ID_MAP, "FinancialInstitutionBranchName"),
-        AccountNumber: "1987238710232",
-        AccountType: "1", // Current
-        ReferrerName: "Joshua Sinyangwe",
-        ReferrerNRC: "412353/24/2",
-        ReferrerContactNo: "0973659947",
-        ReferrerPhysicalAddress: "Lusaka",
-        ReferrerRelationType: "1", // Friend
-        KinName: "Joshua Sinyangwe",
-        KinNRC: "812709/83/2",
-        KinRelationship: "19", // Father
-        KinMobileNo: "0973659947",
-        KinAddress: "Kalundu,",
-        KinProvinceName: "3",
-        KinDistrictName: "13",
-        KinCountryName: "ZM"
+        LoanAmount: data.LoanAmount || data.loanAmount || 0,
+        FinancialInstitutionName: mapToCode(data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank", BANK_ID_MAP, "FinancialInstitutionName"),
+        FinancialInstitutionBranchName: data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || "Head Office",
+        AccountNumber: data.AccountNumber || data.accountNumber || "",
+        AccountType: mapToCode(data.AccountType || data.accountType || "Current", ACCOUNT_TYPE_ID_MAP, "AccountType"),
+        ReferrerName: data.ReferrerName || data.referrerName || "",
+        ReferrerNRC: data.ReferrerNRC || data.referrerNRC || "",
+        ReferrerContactNo: data.ReferrerContactNo || data.referrerContactNo || "",
+        ReferrerPhysicalAddress: data.ReferrerPhysicalAddress || data.referrerPhysicalAddress || "",
+        ReferrerRelationType: mapToCode(data.ReferrerRelationType || data.referrerRelationType || "Friend", RELATIONSHIP_ID_MAP, "ReferrerRelationType"),
+        KinName: data.KinName || data.kinName || "",
+        KinNRC: data.KinNRC || data.kinNRC || "",
+        KinRelationship: mapToCode(data.KinRelationship || data.kinRelationship || "Father", RELATIONSHIP_ID_MAP, "KinRelationship"),
+        KinMobileNo: data.KinMobileNo || data.kinMobileNo || "",
+        KinAddress: data.KinAddress || data.kinAddress || "",
+        KinProvinceName: mapToCode((data.KinProvinceName || data.kinProvinceName || "Lusaka").replace(" Province", ""), PROVINCE_ID_MAP, "KinProvince"),
+        KinDistrictName: mapToCode(data.KinDistrictName || data.kinDistrictName || "Lusaka", DISTRICT_SEQUENTIAL_MAP, "KinDistrict"),
+        KinCountryName: mapToCode(data.KinCountryName || data.kinCountryName || "Zambia", COUNTRY_CODE_MAP, "KinCountry")
       }
     };
 
     // Only include personal details for NEW customers
     if (isNewCustomer) {
-      uatRequest.body.FirstName = data.FirstName || data.firstName || "";
-      uatRequest.body.MiddleName = data.MiddleName || data.middleName || "";
-      uatRequest.body.LastName = data.LastName || data.lastName || "";
-      
-      // Format DateOfBirth to MM/DD/YYYY HH:MM:SS format required by Altus API
-      const dobValue = data.DateOfBirth || data.dateOfBirth || data.dob || "";
-      uatRequest.body.DateOfBirth = dobValue ? formatDateForAltus(dobValue) : "";
-      
       console.log('Debug: New customer loan request - including personal details');
     } else {
-      console.log('Debug: Existing customer loan request - excluding personal details (FirstName, MiddleName, LastName, DateOfBirth)');
+      console.log('Debug: Existing customer loan request - including personal details (required by API)');
     }
+
+    // Always include personal details as per working API calls
+    console.log('Debug: Loan request - personal details included for both New and Existing customers');
 
     // Validate branch name before sending
     const branchName = uatRequest.body.FinancialInstitutionBranchName;

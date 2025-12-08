@@ -1,0 +1,105 @@
+Category,Component,File/Directory,Technology/Purpose,Dependencies,Key Features,Status
+Application,Main Application,/workspaces/altus-lms-fe,React 18 + TypeScript SPA,Node.js,Loan application portal for ALTUS LMS,Production Ready
+Build System,React Scripts,package.json,Create React App,Webpack,Bundling, testing, development server,Active
+Frontend Framework,React 18,src/index.tsx,Component-based UI library,React DOM,Virtual DOM, hooks, context,Active
+Language,TypeScript,tsconfig.json,Type-safe JavaScript,TypeScript Compiler,Static typing, interfaces, generics,Active
+Styling,Material-UI (MUI),package.json,React component library,@mui/material,Pre-built components, theming, icons,Active
+Form Management,React Hook Form,package.json,Form state management,@hookform/resolvers,Validation, performance, TypeScript support,Active
+Validation,Zod,package.json,Schema validation,zod,Type-safe validation, error handling,Active
+HTTP Client,Axios,package.json,Promise-based HTTP client,axios,API calls, interceptors, error handling,Active
+Routing,React Router DOM,package.json,Client-side routing,react-router-dom,Navigation, route guards,Active
+Date Handling,Day.js,package.json,Date manipulation library,dayjs,Lightweight, immutable,Active
+PDF Generation,jsPDF,package.json,Client-side PDF generation,jspdf,Document creation, customization,Active
+OCR Processing,Tesseract.js,package.json,Optical character recognition,tesseract.js,Text extraction from images,Active
+Backend Integration,Express.js,package.json,Web application framework,express,Mock server, API proxy,Active
+CORS Handling,CORS,package.json,CORS middleware,cors,Cross-origin requests,Active
+API Layer,ALTUS API Integration,src/api/altusApi.ts,Custom API client,Axios,Loan requests, document uploads, customer management,Active
+Mock API,Mock Server,src/api/mockApi.ts,Development API simulator,Express.js,Testing without backend, data simulation,Active
+API Testing,API Tester,src/api/apiTester.ts,API testing utilities,Axios,Endpoint validation, response testing,Active
+CORS Testing,CORS Test Helper,src/api/corsTestHelper.ts,CORS debugging tools,Axios,CORS issue diagnosis, request testing,Active
+HTTP Utilities,HTTP Client,src/api/http.ts,HTTP request utilities,Axios,Request configuration, error handling,Active
+Loan API,Loan Operations,src/api/loanApi.ts,Loan-specific API calls,Axios,Loan calculations, status checks,Active
+Quick Tester,Quick API Tests,src/api/quickTester.ts,Rapid API testing,Axios,Quick validation, debugging,Active
+Constants,ALTUS Lookups,src/constants/altusLookups.ts,API mapping constants,None,Province codes, district IDs, relationship mappings,Active
+Location Data,Location Constants,src/constants/locationConstants.ts,Geographic data,None,Provinces, districts, cities,Active
+Branch Data,Branch Constants,src/constants/branchConstants.ts,Bank branch data,None,Branch validation, default branches,Active
+Validation Rules,Validation Constants,src/constants/validationConstants.ts,Form validation rules,None,Field validation, error messages,Active
+Bank Branches,Bank Branch Data,src/constants/bankBranches.ts,Bank branch information,None,Branch codes, names, locations,Active
+Components,Main App,src/components/App.tsx,Root component,React,Application layout, routing,Active
+Wizard System,Multi-Step Wizard,src/components/wizard/MultiStepWizard.tsx,Wizard container,React,Step navigation, progress tracking,Active
+Wizard Context,Wizard State,src/components/wizard/WizardContext.tsx,State management,React Context,Wizard data, step management,Active
+Wizard Progress,Wizard Progress Bar,src/components/wizard/WizardProgress.tsx,Progress indicator,React,Step visualization, completion status,Active
+Wizard Data,Wizard Data Context,src/components/wizard/WizardDataContext.tsx,Data management,React Context,Form data persistence, validation,Active
+Customer Step,Customer Information,src/components/wizard/steps/CustomerStep.tsx,Customer form,React Hook Form,Personal details, address, employment,Active
+Documents Step,Document Upload,src/components/wizard/steps/DocumentsStep.tsx,File upload component,React,Document management, OCR processing,Active
+Calculator Step,Loan Calculator,src/components/wizard/steps/CalculatorStep.tsx,Loan calculation,React,Interest calculation, repayment schedule,Active
+Review Step,Review & Submit,src/components/wizard/steps/ReviewStep.tsx,Data review,React,Form summary, final validation,Active
+Confirmation Step,Confirmation Page,src/components/wizard/steps/ConfirmationStep.tsx,Success page,React,Application confirmation, next steps,Active
+Common Components,Reusable UI,src/components/common/,Shared components,React,Buttons, inputs, dialogs,Active
+Form Components,Form Elements,src/components/form/,Form-specific components,React,Custom inputs, validation displays,Active
+Layout Components,Layout System,src/components/layout/,Page layouts,React,Headers, footers, navigation,Active
+Feedback Components,User Feedback,src/components/feedback/,Notifications, alerts,React,Success messages, error handling,Active
+Tracking Components,Analytics,src/components/tracking/,Tracking components,React,User behavior, conversion tracking,Active
+API Tester Component,API Testing UI,src/components/APITesterComponent.tsx,API test interface,React,Live API testing, response display,Active
+Context Example,ALTUS Context Demo,src/components/AltusContextExample.tsx,Context demonstration,React,API integration examples,Active
+Pages,Landing Page,src/pages/LandingPage.tsx,Home page,React,Application entry point, introduction,Active
+Wizard Page,Loan Application,src/pages/WizardPage.tsx,Main application page,React,Wizard integration, form flow,Active
+API Test Page,API Testing,src/pages/ApiTestPage.tsx,API testing interface,React,Endpoint testing, response analysis,Active
+Tracking Page,Analytics Dashboard,src/pages/TrackingPage.tsx,Analytics view,React,User tracking, conversion metrics,Active
+Not Found Page,404 Error Page,src/pages/NotFoundPage.tsx,Error handling,React,User-friendly error messages,Active
+Hooks,Customer Creation,src/hooks/useCustomerCreation.ts,Customer management,React,API integration, data handling,Active
+UAT Workflow,UAT Process,src/hooks/useUATWorkflow.ts,Loan workflow,React,API orchestration, error handling,Active
+Types,ALTUS Types,src/types/altus.ts,TypeScript definitions,None,API response types, request interfaces,Active
+Type Exports,Type Index,src/types/index.ts,Type exports,None,Centralized type imports,Active
+React DOM Types,DOM Type Extensions,src/types/react-dom-client.d.ts,DOM type fixes,None,React 18 compatibility,Active
+Tesseract Types,OCR Type Definitions,src/types/tesseract-js.d.ts,OCR type definitions,None,Tesseract.js integration,Active
+Utilities,Map to Code,src/utils/mapToCode.ts,Value mapping utility,None,API code conversion, fallback handling,Active
+Validation,Form Validation,src/validation/,Validation logic,Zod,Schema validation, business rules,Active
+Configuration,API Config,src/config/apiConfig.ts,API configuration,None,Environment settings, endpoints,Active
+Context,Application Context,src/context/,Global state,React Context,App-wide data sharing,Active
+Theme,Material-UI Theme,src/theme/,UI theming,@mui/material,Color schemes, typography, spacing,Active
+Scripts,Build Scripts,src/scripts/,Utility scripts,None,Data processing, setup tasks,Active
+Tests,Test Suite,src/test/,Unit tests,Jest,Component testing, API testing,Active
+Tests,Integration Tests,src/tests/,Integration tests,Jest,End-to-end testing, workflow testing,Active
+Setup,Proxy Configuration,src/setupProxy.js,Development proxy,http-proxy-middleware,API proxying, CORS handling,Active
+Build Output,Production Build,build/,Compiled application,None,Static files, optimized bundle,Active
+Deployment,Docker Container,Dockerfile,Docker image,Nginx,Containerization, web serving,Active
+Deployment,Docker Compose,docker-compose.yml,Container orchestration,Docker,Multi-container setup, networking,Active
+Deployment,Nginx Config,nginx.conf,Web server config,Nginx,Reverse proxy, SSL, caching,Active
+Deployment,Hostinger Build,hostinger-deployment/,Static hosting,None,Pre-built for hosting platforms,Active
+Scripts,Deployment Scripts,deploy-*.sh,Bash deployment scripts,None,Automated deployment, VPS setup,Active
+Scripts,Build Scripts,docker-build.sh,Docker build scripts,None,Container building, optimization,Active
+Scripts,Analysis Scripts,analyze-branches.js,Data analysis scripts,None,Branch data processing, validation,Active
+Scripts,API Test Scripts,api-test-production.js,Production testing,None,API validation, integration testing,Active
+Scripts,Branch Test Scripts,test-branches.js,Branch validation,None,Branch data testing,Active
+Environment,Environment Config,.env,Environment variables,None,API keys, configuration,Active
+Environment,Environment Example,.env.example,Configuration template,None,Setup guidance,Active
+Environment,Environment Sample,.env.sample,Sample configuration,None,Reference values,Active
+Documentation,API Documentation,ALTUS_API_README.md,API integration guide,None,Endpoint documentation, authentication,Active
+Documentation,Branch Specification,ALTUS_BRANCH_SPECIFICATION.md,Branch requirements,None,Branch data specifications,Active
+Documentation,API Configuration,API_CONFIGURATION_GUIDE.md,Configuration guide,None,Setup instructions, API keys,Active
+Documentation,API Fixes,API_FIXES_SUMMARY.md,Fix documentation,None,Issue resolution, change logs,Active
+Documentation,API Implementation,API_IMPLEMENTATION_SUMMARY.md,Implementation notes,None,Architecture decisions,Active
+Documentation,API Reference,API_QUICK_REFERENCE.md,API reference,None,Endpoint quick reference,Active
+Documentation,API Updates,API_UPDATE_SUMMARY.md,Update documentation,None,Version changes, migration,Active
+Documentation,Backend Integration,BACKEND_API_INTEGRATION_REPORT.md,Integration report,None,API integration status,Active
+Documentation,Backend Checklist,BACKEND_QUICK_CHECKLIST.md,Checklist,None,Implementation checklist,Active
+Documentation,Backend Issues,BACKEND_SERVICE_ISSUES.md,Issue tracking,None,Known issues, workarounds,Active
+Documentation,Base64 Implementation,BASE64_IMPLEMENTATION_SUMMARY.md,Base64 handling,None,File encoding, upload handling,Active
+Documentation,Branch Validation,BRANCH_VALIDATION_*.md,Branch validation,None,Branch validation system,Active
+Documentation,Compliance Fixes,COMPLIANCE_FIXES_SUMMARY.md,Compliance updates,None,Regulatory compliance,Active
+Documentation,Deployment Guide,DEPLOYMENT_INSTRUCTIONS.md,Deployment instructions,None,Deployment procedures,Active
+Documentation,Docker Guide,DOCKER_README.md,Docker setup,None,Containerization guide,Active
+Documentation,Document Upload,DOCUMENT_UPLOAD_GUIDE.md,Upload guide,None,Document requirements, processing,Active
+Documentation,Documentation Index,DOCUMENTATION_INDEX.md,Documentation index,None,All documentation links,Active
+Documentation,Loan Workflow,LOAN_WORKFLOW_GUIDE.md,Workflow guide,None,Application process, steps,Active
+Documentation,Production API,PRODUCTION_API_*.md,Production setup,None,Production deployment, testing,Active
+Documentation,Quick Start,QUICK_START_*.md,Quick start guides,None,Getting started, basic setup,Active
+Documentation,Troubleshooting,TROUBLESHOOTING_404.md,Troubleshooting,None,Common issues, solutions,Active
+Documentation,UAT Testing,UAT_*.md,UAT testing,None,User acceptance testing,Active
+Documentation,VPS Deployment,VPS_*.md,VPS deployment,None,Server deployment, configuration,Active
+Logs,Application Logs,logs/,Runtime logs,None,Error tracking, debugging,Active
+Logs,React Server Logs,react-server.log,Development logs,None,Build logs, error tracking,Active
+Logs,Serve Logs,serve.log,Production logs,None,Server logs, access tracking,Active
+Archives,Deployment Archives,*.tar.gz,Deployment packages,None,Backup, rollback capability,Active
+Mock Server,Mock Backend,mock-server.js,Development server,Express.js,API simulation, testing,Active

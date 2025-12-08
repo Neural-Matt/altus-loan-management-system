@@ -85,7 +85,7 @@ export const useUATWorkflow = () => {
       
       // Address Information
       primaryAddress: customer.address || "",
-      provinceName: customer.province || "",
+      provinceName: (customer.province || "").replace(" Province", ""), // Normalize province name
       districtName: customer.city || "",
       countryName: "Zambia",
       postalcode: customer.postalCode || "",
@@ -94,7 +94,7 @@ export const useUATWorkflow = () => {
       employeeNumber: customer.payrollNumber || customer.employerId || "",
       designation: customer.occupation || "",
       employerName: customer.employerName || "",
-      employmentType: customer.employmentType === "Permanent" ? "1" : customer.employmentType === "Contract" ? "2" : "1",
+      employmentType: customer.employmentType || "Permanent",
       
       // Loan details
       tenure: loan.tenureMonths || 12,
@@ -146,7 +146,7 @@ export const useUATWorkflow = () => {
       kinRelationship: customer.nextOfKin?.relationship || "",
       kinMobileNo: customer.nextOfKin?.phone || "",
       kinAddress: customer.nextOfKin?.address || "",
-      kinProvinceName: customer.nextOfKin?.province || "",
+      kinProvinceName: (customer.nextOfKin?.province || "").replace(" Province", ""), // Normalize province name
       kinDistrictName: customer.nextOfKin?.city || "",
       kinCountryName: "Zambia"
     };

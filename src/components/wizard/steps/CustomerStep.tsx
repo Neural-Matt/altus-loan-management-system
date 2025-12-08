@@ -13,6 +13,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningIcon from '@mui/icons-material/Warning';
 import { getAllBankNames, getBranchesForBank, getBranchGroup, allValidBranches, isFNBBank, getNonFNBWarning } from '../../../constants/bankBranches';
 import { provinces, citiesByProvince, branchByProvince, getCitiesForProvince, getBranchesForProvince } from '../../../constants/locationConstants';
+import { RELATIONSHIP_ID_MAP } from '../../../constants/altusLookups';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -250,11 +251,11 @@ export const CustomerStep: React.FC = () => {
                 label="Title"
                 select
               >
-                <MenuItem value="Mr">Mr</MenuItem>
-                <MenuItem value="Mrs">Mrs</MenuItem>
-                <MenuItem value="Miss">Miss</MenuItem>
-                <MenuItem value="Ms">Ms</MenuItem>
-                <MenuItem value="Dr">Dr</MenuItem>
+                <MenuItem value="Mr">Mr.</MenuItem>
+                <MenuItem value="Mrs">Mrs.</MenuItem>
+                <MenuItem value="Miss">Miss.</MenuItem>
+                <MenuItem value="Ms">Ms.</MenuItem>
+                <MenuItem value="Dr">Dr.</MenuItem>
               </FormTextField>
             </Box>
             <Box></Box>
@@ -722,7 +723,28 @@ export const CustomerStep: React.FC = () => {
             </Box>
             <Box><FormNRCField name="nextOfKin.nrc" control={control} label="NRC" /></Box>
             <Box><FormTextField name="nextOfKin.nationality" control={control} label="Nationality" /></Box>
-            <Box><FormTextField name="nextOfKin.relationship" control={control} label="Relationship" /></Box>
+            <Box>
+              <Controller
+                name="nextOfKin.relationship"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    select
+                    label="Relationship"
+                    fullWidth
+                    error={!!error}
+                    helperText={error?.message}
+                  >
+                    {Object.entries(RELATIONSHIP_ID_MAP).map(([name, id]) => (
+                      <MenuItem key={id} value={name}>
+                        {id} - {name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Box>
           </Box>
         </Section>
         <Section title="Reference" toggle open={openRef} onToggle={()=>setOpenRef(o=>!o)} subtitle="Professional or character reference">
@@ -732,7 +754,28 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="reference.email" control={control} label="Email" /></Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="reference.address" control={control} label="Address" /></Box>
             <Box><FormNRCField name="reference.nrc" control={control} label="NRC" /></Box>
-            <Box><FormTextField name="reference.relationship" control={control} label="Relationship" /></Box>
+            <Box>
+              <Controller
+                name="reference.relationship"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    select
+                    label="Relationship"
+                    fullWidth
+                    error={!!error}
+                    helperText={error?.message}
+                  >
+                    {Object.entries(RELATIONSHIP_ID_MAP).map(([name, id]) => (
+                      <MenuItem key={id} value={name}>
+                        {id} - {name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Box>
           </Box>
         </Section>
       </Stack>

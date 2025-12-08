@@ -49,7 +49,7 @@ print_warning() {
 
 # Step 1: Check SSH connectivity
 echo -e "${YELLOW}Step 1: Testing SSH connectivity...${NC}"
-if ssh -o BatchMode=yes -o ConnectTimeout=5 ${VPS_USER}@${VPS_HOST} exit 2>/dev/null; then
+if ssh -o ConnectTimeout=5 ${VPS_USER}@${VPS_HOST} exit 2>/dev/null; then
     print_status "SSH connection successful"
 else
     print_error "Cannot connect to VPS. Please check:"
