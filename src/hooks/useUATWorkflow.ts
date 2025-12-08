@@ -7,6 +7,8 @@ import { useCallback } from 'react';
 import altusApi from '../api/altusApi';
 import { useWizardData } from '../components/wizard/WizardDataContext';
 import { useAltus } from '../context/AltusContext';
+import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
+import { allValidBranches, isValidBranch } from '../constants/bankBranches';
 
 // UAT API Response Types
 interface UATResponse<T> {
@@ -33,94 +35,20 @@ export interface LoanApplicationWorkflow {
 }
 
 export const useUATWorkflow = () => {
-  const { customer, loan, setCustomer, setLoan } = useWizardData();
+  const { customer, loan, setLoan } = useWizardData();
   const { state } = useAltus();
 
   const submitLoanApplication = useCallback(async (): Promise<string> => {
     console.log('🚀 Starting UAT Loan Application Workflow...');
 
-    let customerId = customer.customerId || state.currentCustomer?.customerId;
+    // Check if customer was created (optional now)
+    const customerId = customer.customerId || state.currentCustomer?.customerId;
     
-    // For new customers, create customer first
+    // Allow proceeding without customer creation - use form data directly
     if (!customerId) {
-      console.log('👤 No CustomerID found - creating new customer first...');
-      
-      // Prepare customer creation data
-      const customerRequest = {
-        firstName: customer.firstName || '',
-        lastName: customer.lastName || customer.firstName || '', // Use firstName if lastName is empty
-        nrc: customer.nrc || '',
-        nrcIssueDate: customer.nrcIssueDate || '',
-        phoneNumber: customer.phone || '',
-        emailAddress: customer.email || '',
-        dateOfBirth: customer.dateOfBirth || '',
-        title: customer.title || '',
-        gender: (customer.gender as "Male" | "Female") || "Male",
-        nationality: customer.nationality === 'Other' ? customer.otherNationality || '' : customer.nationality || 'Zambian',
-        maritalStatus: customer.maritalStatus || 'Single',
-        address: {
-          street: customer.address || '',
-          city: customer.city || '',
-          province: customer.province || '',
-          postalCode: customer.postalCode || "",
-          country: "Zambia"
-        },
-        preferredBranch: customer.preferredBranch,
-        employment: {
-          employerId: customer.employerId || "EMP001",
-          employerName: customer.employerName || '',
-          employerCode: customer.payrollNumber || '',
-          position: customer.occupation || 'Employee',
-          salary: customer.salary || 0,
-          employmentDate: customer.employmentDate || '',
-          employmentType: (customer.employmentType as "Permanent" | "Contract" | "Temporary") || "Permanent"
-        },
-        nextOfKin: {
-          firstName: customer.nextOfKin?.firstName || '',
-          lastName: customer.nextOfKin?.lastName || '',
-          relationship: customer.nextOfKin?.relationship || '',
-          phoneNumber: customer.nextOfKin?.phone || '',
-          address: customer.nextOfKin?.address || ''
-        },
-        bankDetails: {
-          bankName: customer.bankName || '',
-          accountNumber: customer.accountNumber || '',
-          accountType: customer.accountType || '',
-          branchCode: customer.bankBranch || ''
-        }
-      };
-
-      try {
-        const createdCustomer = await altusApi.createRetailCustomer(customerRequest);
-        
-        // The API specification says outParams.CustomerID should be returned
-        // But the backend may return RequestId instead - check both
-        customerId = createdCustomer.outParams?.CustomerID || createdCustomer.outParams?.RequestId;
-        
-        // If neither field exists, use the instanceId as a last resort identifier
-        if (!customerId) {
-          if (createdCustomer.instanceId) {
-            console.warn('⚠️  CustomerID not returned by API, using instanceId as fallback:', createdCustomer.instanceId);
-            customerId = createdCustomer.instanceId;
-          } else {
-            throw new Error('Customer creation succeeded but no CustomerID or instanceId returned');
-          }
-        }
-        
-        console.log('✅ Customer created successfully, ID:', customerId);
-        
-        // Update wizard data with the CustomerID
-        setCustomer({
-          ...customer,
-          customerId: customerId,
-          apiCustomerData: createdCustomer
-        });
-      } catch (error) {
-        console.error('❌ Customer creation failed:', error);
-        throw error;
-      }
+      console.log('⚠️ No CustomerID found - proceeding with form data only (TypeOfCustomer: New)');
     } else {
-      console.log('✅ Using existing Customer ID:', customerId);
+      console.log('✅ Customer ID available:', customerId);
     }
 
     // Validate required customer data from form
@@ -138,12 +66,19 @@ export const useUATWorkflow = () => {
     }
 
     // Step 2: Submit loan request to get ApplicationNumber
-    // Customer already created, so use TypeOfCustomer "Existing"
+    // Using TypeOfCustomer "New" with all customer details from form
+    // This allows creating loan application even without prior customer creation
     const loanRequestData = {
-      TypeOfCustomer: "Existing",
-      CustomerId: customerId,
+      TypeOfCustomer: "New",
+      customerId: customerId || "", // Empty if no customer created yet
       
-      // Identity and contact details (required even for existing customers)
+      // Personal details for New customer (from form data)
+      firstName: customer.firstName || "",
+      middleName: "",
+      lastName: customer.lastName || "",
+      dateOfBirth: customer.dateOfBirth || "",
+      
+      // Identity and contact details
       identityNo: customer.nrc || "",
       contactNo: customer.phone || "",
       emailId: customer.email || "",
@@ -171,7 +106,30 @@ export const useUATWorkflow = () => {
       
       // Bank Details
       financialInstitutionName: customer.bankName || "",
-      financialInstitutionBranchName: customer.bankBranch || "",
+      financialInstitutionBranchName: (() => {
+        // Ensure branch is a valid ALTUS API branch name
+        const providedBranch = customer.bankBranch?.trim() || "";
+        
+        console.log('🔍 Bank Branch Validation:', { providedBranch, isValid: isValidBranchName(providedBranch) });
+        
+        // If valid, use as-is
+        if (isValidBranchName(providedBranch)) {
+          console.log('✅ Using provided branch:', providedBranch);
+          return providedBranch;
+        }
+        
+        // Try to find matching branch by partial name
+        const matchedBranch = getBranchByPartialMatch(providedBranch);
+        if (matchedBranch) {
+          console.log(`📍 Mapped "${providedBranch}" to valid branch: "${matchedBranch}"`);
+          return matchedBranch;
+        }
+        
+        // Fall back to province-based default
+        const defaultBranch = getDefaultBranchForProvince(customer.province || "");
+        console.log(`📍 Using default branch for province "${customer.province}": "${defaultBranch}"`);
+        return defaultBranch;
+      })(),
       accountNumber: customer.accountNumber || "",
       accountType: customer.accountType || "",
       
@@ -198,36 +156,53 @@ export const useUATWorkflow = () => {
       identityNo: loanRequestData.identityNo,
       loanAmount: loanRequestData.loanAmount,
       tenure: loanRequestData.tenure,
+      bankName: loanRequestData.financialInstitutionName,
+      bankBranch: loanRequestData.financialInstitutionBranchName,
       hasPersonalDetails: true,
       hasAddressDetails: !!(loanRequestData.primaryAddress && loanRequestData.provinceName),
       hasBankDetails: !!(loanRequestData.financialInstitutionName && loanRequestData.accountNumber),
       hasNextOfKin: !!loanRequestData.kinName,
       hasReference: !!loanRequestData.referrerName
     });
+    
+    // ============================================================================
+    // CRITICAL VALIDATION GUARD - Validate branch name against ALTUS 37 branches
+    // ============================================================================
+    console.log('🔒 Final branch being sent to ALTUS →', loanRequestData.financialInstitutionBranchName);
+    
+    if (!isValidBranch(loanRequestData.financialInstitutionBranchName)) {
+      const errorMessage = `❌ Invalid branch selected: "${loanRequestData.financialInstitutionBranchName}". Must be one of the 37 exact ALTUS branch names.`;
+      console.error(errorMessage);
+      console.error('📋 Valid branches:', allValidBranches);
+      throw new Error(
+        `Invalid branch name: "${loanRequestData.financialInstitutionBranchName}". ` +
+        `ALTUS only accepts these exact branch names: ${allValidBranches.slice(0, 5).join(', ')}... (37 total). ` +
+        `Please select a valid branch from the dropdown.`
+      );
+    }
+    
+    console.log('✅ Branch validation passed:', loanRequestData.financialInstitutionBranchName);
+    
     const loanResult = await altusApi.submitLoanRequest(loanRequestData) as UATResponse<LoanRequestResponse>;
     
     console.log('📋 Full Loan Request Response:', loanResult);
-    console.log('📋 Response Status:', loanResult.executionStatus);
-    console.log('📋 Response Message:', loanResult.executionMessage);
-    console.log('📋 Response outParams:', loanResult.outParams);
     
     if (loanResult.executionStatus !== 'Success' || !loanResult.outParams?.ApplicationNumber) {
       console.error('❌ Loan request failed:', loanResult);
-      console.error('❌ Error Message:', loanResult.executionMessage);
       throw new Error(`Loan request failed: ${loanResult.executionMessage || 'No ApplicationNumber returned'}`);
     }
 
     const applicationNumber = loanResult.outParams.ApplicationNumber;
     console.log('✅ Loan request submitted. ApplicationNumber:', applicationNumber);
-    
-    // Update wizard data with the ApplicationNumber
-    setLoan({
-      ...loan,
-      applicationNumber: applicationNumber
-    });
-    
     console.log('⏳ Note: Backend requires manual approval before ApplicationNumber becomes active for document uploads');
     console.log('📝 Documents will be stored locally and uploaded automatically after approval');
+
+    // Save applicationNumber to wizard context
+    setLoan({
+      ...loan,
+      applicationNumber,
+      applicationId: applicationNumber // Alias for easier access
+    });
 
     return applicationNumber;
   }, [customer, loan, state]);

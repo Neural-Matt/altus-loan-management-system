@@ -1,0 +1,174 @@
+Category,Subcategory,Name,Type,Purpose,Status,Key Details
+Project,Metadata,Name,String,Application Name,Active,altus-loan-application-portal
+Project,Metadata,Version,String,Application Version,Active,1.0.0
+Project,Metadata,Description,String,Purpose,Active,Zambian Loan Management System - Frontend Portal for ALTUS API
+Project,Metadata,Owner,String,Repository Owner,Active,rndexponentbizolution-crypto
+Project,Metadata,Current Branch,String,Git Branch,Active,main
+Project,Metadata,Date,String,Creation Date,Active,December 3 2025
+Project,Framework,React,String,UI Framework,Active,18.3.1
+Project,Framework,TypeScript,String,Language,Active,4.9.5
+Project,Framework,React Router,String,Routing,Active,7.9.3
+Project,Framework,React Hook Form,String,Form Management,Active,7.63.0
+Project,Dependencies,Material-UI,String,UI Components,Active,7.3.4
+Project,Dependencies,Axios,String,HTTP Client,Active,1.12.2
+Project,Dependencies,Zod,String,Schema Validation,Active,4.1.11
+Project,Dependencies,React PDF,String,PDF Generation,Active,jspdf 3.0.3
+Project,Dependencies,Tesseract.js,String,OCR,Active,5.1.1
+Project,Dependencies,date-fns,String,Date Utilities,Active,4.1.0
+Project,Dependencies,dayjs,String,Date Library,Active,1.11.18
+Project,Dependencies,Emotion,String,CSS-in-JS,Active,@emotion/react 11.14.0
+Project,Dependencies,classnames,String,CSS Class Utilities,Active,2.5.1
+Project,Build,Start Command,String,Development,Active,react-scripts start
+Project,Build,Build Command,String,Production,Active,react-scripts build
+Project,Build,Test Command,String,Testing,Active,react-scripts test
+Project,API,Base URL,String,API Gateway,Active,http://3.6.174.212:5010
+Project,API,Loan Services Port,String,Port,Active,5012
+Project,API,Customer Services Port,String,Port,Active,5011
+Project,API,Product Services Port,String,Port,Active,5014
+Project,API,Document Services Port,String,Port,Active,5013
+Component,Layout,Header,TSX,Navigation Header,Active,Logo and navigation bar
+Component,Layout,Footer,TSX,Application Footer,Active,Footer with links and info
+Component,Layout,AppLayout,TSX,Main Layout Container,Active,Wraps all pages with Header/Footer
+Component,Pages,LandingPage,TSX,Home Page,Active,Welcome and app overview
+Component,Pages,WizardPage,TSX,Main Application,Active,Multi-step loan form
+Component,Pages,TrackingPage,TSX,Loan Tracking,Active,Track application status
+Component,Pages,ApiTestPage,TSX,API Testing,Active,Test API endpoints
+Component,Pages,NotFoundPage,TSX,404 Error,Active,Page not found handler
+Component,Wizard,MultiStepWizard,TSX,Form Container,Active,Manages multi-step workflow
+Component,Wizard,WizardContext,TSX,Form Context,Active,Provides wizard state
+Component,Wizard,WizardDataContext,TSX,Data Context,Active,Manages form data
+Component,Wizard,WizardProgress,TSX,Progress Indicator,Active,Shows current step
+Component,Wizard Steps,CustomerStep,TSX,Step 1,Active,Personal/Customer Info
+Component,Wizard Steps,CalculatorStep,TSX,Step 2,Active,Loan Calculation
+Component,Wizard Steps,DocumentsStep,TSX,Step 3,Active,Document Upload
+Component,Wizard Steps,ReviewStep,TSX,Step 4,Active,Application Review
+Component,Wizard Steps,ConfirmationStep,TSX,Step 5,Active,Success Confirmation
+Component,Form,FormTextField,TSX,Input Field,Active,Reusable text field component
+Component,Form,FormNRCField,TSX,NRC Input,Active,National ID input field
+Component,Common,ApiConnectivityChecker,TSX,API Status,Active,Checks API availability
+Component,Common,Pill,TSX,Badge,Active,Status badge component
+Component,Feedback,SnackbarProvider,TSX,Notifications,Active,Toast notifications
+Component,Tracking,LoanStatusTracker,TSX,Status Display,Active,Shows loan status
+Component,Tracking,LoanStatusTrackerExample,TSX,Example,Active,Tracker example
+Component,API,APITesterComponent,TSX,Testing Tool,Active,Manual API testing
+Component,Context Example,AltusContextExample,TSX,Example,Active,Context usage example
+API,Endpoints,Loan Balance,Function,Get Balance,Active,Retrieves customer loan balance
+API,Endpoints,Loan Status,Function,Get Status,Active,Retrieves application status
+API,Endpoints,Loan Details,Function,Get Details,Active,Retrieves full loan details
+API,Endpoints,Loan Products,Function,Get Products,Active,Retrieves available loan products
+API,Endpoints,Create Customer,Function,Create,Active,Creates new retail customer
+API,Endpoints,Create Business Customer,Function,Create,Active,Creates business customer
+API,Endpoints,Submit Loan Request,Function,Submit,Active,Submits new loan application
+API,Endpoints,Submit Business Loan,Function,Submit,Active,Submits business loan
+API,Endpoints,Upload Document,Function,Upload,Active,Uploads application documents
+API,Authentication,Bearer Token,String,Auth Method,Active,Fixed token from UAT documentation
+Hook,Workflow,useUATWorkflow,Hook,Loan Submission,Active,Orchestrates entire loan workflow
+Hook,Customer,useCustomerCreation,Hook,Customer Ops,Active,Handles customer creation
+Utility,Calculation,loanCalculator,Function,Math,Active,Calculates loan amounts and interest
+Utility,Storage,draftStorage,Function,LocalStorage,Active,Saves draft applications
+Utility,Tracking,recentTracking,Function,History,Active,Tracks recent applications
+Utility,Validation,docValidation,Function,Validation,Active,Validates uploaded documents
+Utility,Formatting,nrcMerger,Function,Image Processing,Active,Merges NRC front and back
+Utility,Formatting,payslipMerger,Function,Image Processing,Active,Merges payslip pages
+Utility,PDF,applicationPdfGenerator,Function,Export,Active,Generates application PDF
+Utility,Retry,retry,Function,Error Handling,Active,Retry logic with exponential backoff
+Utility,Formatting,format,Function,Display,Active,Format dates and currency
+Utility,Logging,eventLog,Function,Analytics,Active,Logs user events
+Utility,Security,sanitize,Function,Security,Active,Sanitizes user input
+Validation,Schema,schemas,File,ZOD Schemas,Active,Customer form validation
+Validation,Fields,mandatoryFields,File,Required Fields,Active,Mandatory field definitions
+Configuration,API,apiConfig,File,API Setup,Active,API endpoints and config
+Configuration,Theme,theme,File,MUI Theme,Active,Material-UI theme customization
+Constants,Branches,branchConstants,File,Valid Branches,Active,37 valid ALTUS branches
+Constants,Validation,validationConstants,File,Rules,Active,Validation rules and limits
+Types,Schema,altus,File,TypeScript Types,Active,ALTUS API response types
+Types,Index,index,File,All Types,Active,Exported types
+Testing,Workflow,loanSubmissionFlow,File,Test Suite,Active,Loan submission tests
+Testing,Workflow,uatWorkflowTest,File,Test Suite,Active,UAT workflow tests
+Testing,API,apiValidation,File,Test Suite,Active,API validation tests
+Branch Validation,Valid Branches,Commercial Suite,String,Location,Active,Corporate headquarters
+Branch Validation,Valid Branches,Industrial,String,Location,Active,Industrial zone
+Branch Validation,Valid Branches,FNB Operation Centre,String,Location,Active,Operations center
+Branch Validation,Valid Branches,Head Office,String,Location,Active,Main headquarters
+Branch Validation,Valid Branches,Electronic Banking,String,Service,Active,Digital banking
+Branch Validation,Valid Branches,Treasury,String,Service,Active,Treasury operations
+Branch Validation,Valid Branches,Manda Hill,String,Location,Active,Lusaka retail
+Branch Validation,Valid Branches,Vehicle and Asset Finance,String,Service,Active,Asset financing
+Branch Validation,Valid Branches,Makeni Mall,String,Location,Active,Lusaka mall
+Branch Validation,Valid Branches,Home Loan,String,Service,Active,Home loan service
+Branch Validation,Valid Branches,Branchless Banking,String,Service,Active,Digital service
+Branch Validation,Valid Branches,Electronic Wallet,String,Service,Active,E-wallet service
+Branch Validation,Valid Branches,CIB Corporate,String,Service,Active,Corporate service
+Branch Validation,Valid Branches,Premier Banking,String,Service,Active,Premium service
+Branch Validation,Valid Branches,Agriculture Centre,String,Service,Active,Agricultural loans
+Branch Validation,Valid Branches,Corporate Investment Banking,String,Service,Active,Corporate services
+Branch Validation,Valid Branches,Chilenje,String,Location,Active,Lusaka branch
+Branch Validation,Valid Branches,Cash Centre,String,Service,Active,Cash operations
+Branch Validation,Valid Branches,PHI Branch,String,Location,Active,Lusaka branch
+Branch Validation,Valid Branches,Cairo,String,Location,Active,Lusaka branch
+Branch Validation,Valid Branches,Kabulonga,String,Location,Active,Lusaka branch
+Branch Validation,Valid Branches,Ndola,String,Location,Active,Copperbelt
+Branch Validation,Valid Branches,Jacaranda Mall,String,Location,Active,Lusaka mall
+Branch Validation,Valid Branches,Kitwe,String,Location,Active,Copperbelt
+Branch Validation,Valid Branches,Mukuba Mall,String,Location,Active,Copperbelt mall
+Branch Validation,Valid Branches,Kitwe Industrial,String,Location,Active,Copperbelt industrial
+Branch Validation,Valid Branches,Chingola,String,Location,Active,Copperbelt
+Branch Validation,Valid Branches,Mufulira,String,Location,Active,Copperbelt
+Branch Validation,Valid Branches,Luanshya,String,Location,Active,Copperbelt
+Branch Validation,Valid Branches,Kabwe,String,Location,Active,Central Province
+Branch Validation,Valid Branches,Livingstone,String,Location,Active,Southern Province
+Branch Validation,Valid Branches,Chipata,String,Location,Active,Eastern Province
+Branch Validation,Valid Branches,Choma,String,Location,Active,Southern Province
+Branch Validation,Valid Branches,Mkushi,String,Location,Active,Central Province
+Branch Validation,Valid Branches,Solwezi,String,Location,Active,Northwestern Province
+Branch Validation,Valid Branches,Kalumbila,String,Location,Active,Northwestern Province
+Branch Validation,Valid Branches,Mazabuka,String,Location,Active,Southern Province
+Form Step,Customer Info,firstName,Field,Text,Required,First name
+Form Step,Customer Info,lastName,Field,Text,Required,Last name
+Form Step,Customer Info,email,Field,Email,Required,Email address
+Form Step,Customer Info,phoneNumber,Field,Phone,Required,Mobile number
+Form Step,Customer Info,nrc,Field,Text,Required,National ID
+Form Step,Customer Info,dateOfBirth,Field,Date,Required,Birth date
+Form Step,Customer Info,gender,Field,Select,Required,Male/Female/Other
+Form Step,Customer Info,address,Field,Text,Required,Residential address
+Form Step,Customer Info,city,Field,Text,Required,City/District
+Form Step,Customer Info,province,Field,Select,Required,Province
+Form Step,Customer Info,postalCode,Field,Text,Optional,Postal code
+Form Step,Employment,employerName,Field,Text,Required,Employer name
+Form Step,Employment,payrollNumber,Field,Text,Required,Payroll ID
+Form Step,Employment,occupation,Field,Text,Required,Job title
+Form Step,Employment,employmentType,Field,Select,Required,Permanent/Contract
+Form Step,Employment,salary,Field,Number,Required,Gross monthly salary
+Form Step,Banking,bankName,Field,Select,Required,Bank name
+Form Step,Banking,bankBranch,Field,Select,Required,Branch (37 valid options)
+Form Step,Banking,accountNumber,Field,Text,Required,Account number
+Form Step,Banking,accountType,Field,Select,Required,Savings/Current/Fixed Deposit
+Form Step,Loan Details,requestedAmount,Field,Number,Required,Loan amount requested
+Form Step,Loan Details,tenureMonths,Field,Number,Required,Loan duration (months)
+Form Step,Loan Details,loanPurpose,Field,Text,Required,Purpose of loan
+Form Step,Next of Kin,kinFirstName,Field,Text,Required,Emergency contact first name
+Form Step,Next of Kin,kinLastName,Field,Text,Required,Emergency contact last name
+Form Step,Next of Kin,kinPhone,Field,Phone,Required,Emergency contact phone
+Form Step,Next of Kin,kinRelationship,Field,Select,Required,Relationship
+Form Step,Reference,referenceName,Field,Text,Required,Reference name
+Form Step,Reference,referencePhone,Field,Phone,Required,Reference phone
+Form Step,Reference,referenceEmail,Field,Email,Optional,Reference email
+Form Step,Reference,referenceRelationship,Field,Text,Required,Relationship to reference
+Feature,Validation,3-Layer Validation,System,Branch Validation,Active,UI + Workflow + API
+Feature,Validation,Fuzzy Matching,System,Branch Matching,Active,Partial branch name matching
+Feature,Validation,Province Fallback,System,Smart Default,Active,Auto-select branch by province
+Feature,Upload,Document Merge,System,Processing,Active,Merges multi-page documents
+Feature,Upload,OCR Processing,System,Text Recognition,Active,Tesseract.js integration
+Feature,Export,PDF Generation,System,Download,Active,Generates application PDF
+Feature,Tracking,Status Monitoring,System,Real-time,Active,Tracks loan status updates
+Feature,Persistence,Draft Save,System,Local Storage,Active,Saves incomplete applications
+Feature,Error Handling,Retry Logic,System,Resilience,Active,Exponential backoff retry
+Feature,UI,Multi-step Form,System,UX,Active,5-step wizard with validation
+Feature,API,CORS Handling,System,Integration,Active,CORS test and fix utilities
+Documentation,Guide,API_CONFIGURATION_GUIDE,File,Setup,Active,API configuration instructions
+Documentation,Guide,BRANCH_VALIDATION_DEBUG_GUIDE,File,Troubleshooting,Active,Branch validation debugging
+Documentation,Guide,BRANCH_FIX_FINAL,File,Reference,Active,Branch validation fix details
+Documentation,Guide,IMPLEMENTATION_STATUS_BRANCH_VALIDATION,File,Status,Active,Implementation summary
+Documentation,Guide,QUICK_START_BRANCH_VALIDATION,File,Quick Reference,Active,Quick start guide
+Documentation,Guide,DEPLOYMENT_INSTRUCTIONS,File,Deployment,Active,Deployment procedures
+Documentation,Guide,README,File,Overview,Active,Project overview

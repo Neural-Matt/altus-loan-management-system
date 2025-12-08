@@ -1,6 +1,19 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
+  // Only skip proxy setup if explicitly in development with mock mode enabled
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isMockMode = process.env.REACT_APP_MOCK_MODE === 'true';
+
+  if (isDevelopment && isMockMode) {
+    console.log('🔧 Development + Mock mode enabled - skipping API proxy setup');
+    return;
+  }
+
+  console.log('🔧 Setting up API proxies for production mode');
+  console.log(`   Environment: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`   Mock Mode: ${isMockMode ? 'enabled' : 'disabled'}`);
+
   // Proxy for Loan Services (Port 5010)
   app.use(
     '/loan-api',

@@ -1,24 +1,18 @@
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema, CustomerFormValues } from '../../../validation/schemas';
-import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem } from '@mui/material';
+import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem, Autocomplete, TextField, Chip, Tooltip, Alert } from '@mui/material';
 import { FormTextField } from '../../form/FormTextField';
 import { FormNRCField } from '../../form/FormNRCField';
 import { useWizardData } from '../WizardDataContext';
 import { useAltus } from '../../../context/AltusContext';
 import { useSnackbar } from '../../feedback/SnackbarProvider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {
-  PROVINCES,
-  DISTRICTS_BY_PROVINCE,
-  BANKS,
-  BRANCHES_BY_BANK,
-  ACCOUNT_TYPES,
-  RELATIONSHIPS,
-  TITLES,
-  GENDERS
-} from '../../../constants/uatDropdownValues';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import WarningIcon from '@mui/icons-material/Warning';
+import { getAllBankNames, getBranchesForBank, getBranchGroup, allValidBranches, isFNBBank, getNonFNBWarning } from '../../../constants/bankBranches';
+import { provinces, citiesByProvince, branchByProvince, getCitiesForProvince, getBranchesForProvince } from '../../../constants/locationConstants';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -27,7 +21,7 @@ export const CustomerStep: React.FC = () => {
   const [openKin, setOpenKin] = React.useState(true);
   const [openRef, setOpenRef] = React.useState(false);
 
-  const { control, handleSubmit, reset, watch, resetField, formState: { errors }, trigger } = useForm<CustomerFormValues>({
+  const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
     defaultValues: {
       firstName: customer.firstName || '',
       lastName: customer.lastName || '',
@@ -67,22 +61,15 @@ export const CustomerStep: React.FC = () => {
 
   // Watch nationality field to conditionally show other nationality input
   const nationalityValue = watch('nationality');
-  const provinceValue = watch('province');
-  const bankNameValue = watch('bankName');
-
-  // Reset district when province changes
-  useEffect(() => {
-    if (provinceValue) {
-      resetField('city');
-    }
-  }, [provinceValue, resetField]);
-
-  // Reset branch when bank changes
-  useEffect(() => {
-    if (bankNameValue) {
-      resetField('bankBranch');
-    }
-  }, [bankNameValue, resetField]);
+  
+  // Watch bank name to filter branch options dynamically
+  const selectedBankName = watch('bankName');
+  
+  // Watch province to filter city and branch options (cascading)
+  const selectedProvince = watch('province');
+  
+  // Watch next of kin province for cascading dropdowns
+  const selectedKinProvince = watch('nextOfKin.province');
 
   useEffect(() => {
     reset({
@@ -263,9 +250,11 @@ export const CustomerStep: React.FC = () => {
                 label="Title"
                 select
               >
-                {TITLES.map(title => (
-                  <MenuItem key={title} value={title}>{title}</MenuItem>
-                ))}
+                <MenuItem value="Mr">Mr</MenuItem>
+                <MenuItem value="Mrs">Mrs</MenuItem>
+                <MenuItem value="Miss">Miss</MenuItem>
+                <MenuItem value="Ms">Ms</MenuItem>
+                <MenuItem value="Dr">Dr</MenuItem>
               </FormTextField>
             </Box>
             <Box></Box>
@@ -283,38 +272,72 @@ export const CustomerStep: React.FC = () => {
                 label="Gender"
                 select
               >
-                {GENDERS.map(gender => (
-                  <MenuItem key={gender} value={gender}>{gender}</MenuItem>
-                ))}
+                <MenuItem value="Male">Male</MenuItem>
+                <MenuItem value="Female">Female</MenuItem>
               </FormTextField>
             </Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="address" control={control} label="Residential Address" /></Box>
+            
+            {/* Province Autocomplete - First in cascade */}
             <Box>
-              <FormTextField 
-                name="city" 
-                control={control} 
-                label="City/District"
-                select
-                disabled={!provinceValue}
-                helperText={!provinceValue ? "Please select province first" : ""}
-              >
-                {(DISTRICTS_BY_PROVINCE[provinceValue] || []).map(district => (
-                  <MenuItem key={district} value={district}>{district}</MenuItem>
-                ))}
-              </FormTextField>
+              <Controller
+                name="province"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <Autocomplete
+                    options={[...provinces]}
+                    value={field.value || null}
+                    onChange={(_, newValue) => {
+                      field.onChange(newValue || '');
+                      // Reset dependent fields when province changes
+                      const currentValues = watch();
+                      if (newValue !== field.value) {
+                        reset({ ...currentValues, city: '', bankBranch: '' });
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Province"
+                        error={!!error}
+                        helperText={error?.message}
+                        required
+                      />
+                    )}
+                    disableClearable={false}
+                    isOptionEqualToValue={(option, value) => option === value}
+                  />
+                )}
+              />
             </Box>
+
+            {/* City Autocomplete - Filtered by province */}
             <Box>
-              <FormTextField 
-                name="province" 
-                control={control} 
-                label="Province"
-                select
-              >
-                {PROVINCES.map(province => (
-                  <MenuItem key={province} value={province}>{province}</MenuItem>
-                ))}
-              </FormTextField>
+              <Controller
+                name="city"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <Autocomplete
+                    options={selectedProvince ? getCitiesForProvince(selectedProvince) : []}
+                    value={field.value || null}
+                    onChange={(_, newValue) => field.onChange(newValue || '')}
+                    disabled={!selectedProvince}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="City/District"
+                        error={!!error}
+                        helperText={error?.message || (!selectedProvince ? 'Select province first' : '')}
+                        required
+                      />
+                    )}
+                    disableClearable={false}
+                    isOptionEqualToValue={(option, value) => option === value}
+                  />
+                )}
+              />
             </Box>
+            
             <Box><FormTextField name="postalCode" control={control} label="Postal Code (Optional)" /></Box>
             <Box>
               <FormTextField 
@@ -445,32 +468,156 @@ export const CustomerStep: React.FC = () => {
         </Section>
         <Section title="Bank Details" subtitle="Account information for disbursement">
           <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr' } }}>
+            {/* Bank Name - Autocomplete with all Zambian banks */}
             <Box>
-              <FormTextField 
-                name="bankName" 
-                control={control} 
-                label="Bank / Financial Institution"
-                select
-              >
-                {BANKS.map(bank => (
-                  <MenuItem key={bank} value={bank}>{bank}</MenuItem>
-                ))}
-              </FormTextField>
+              <Controller
+                name="bankName"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <Autocomplete
+                    {...field}
+                    options={getAllBankNames()}
+                    value={field.value || null}
+                    onChange={(_, newValue) => {
+                      field.onChange(newValue || '');
+                      // Reset branch when bank changes
+                      if (newValue !== field.value) {
+                        const currentBranch = watch('bankBranch');
+                        const newBranches = selectedProvince 
+                          ? getBranchesForProvince(selectedProvince)
+                          : allValidBranches;
+                        if (!newBranches.includes(currentBranch as any)) {
+                          // Clear branch if it's not valid for the new province
+                          reset({ ...watch(), bankBranch: '' });
+                        }
+                      }
+                    }}
+                    disableClearable={false}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Bank Name"
+                        error={!!error}
+                        helperText={error?.message || 'Select your bank'}
+                        required
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option === value}
+                  />
+                )}
+              />
             </Box>
+            
+            {/* Show warning if non-FNB bank is selected */}
+            {selectedBankName && !isFNBBank(selectedBankName) && (
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <Alert severity="warning" icon={<WarningIcon />}>
+                  {getNonFNBWarning(selectedBankName)}
+                </Alert>
+              </Box>
+            )}
+            
+            {/* Bank Branch - Autocomplete filtered by province */}
             <Box>
-              <FormTextField 
-                name="bankBranch" 
-                control={control} 
-                label="Bank Branch"
-                select
-                disabled={!bankNameValue}
-                helperText={!bankNameValue ? "Please select bank first" : ""}
-              >
-                {(BRANCHES_BY_BANK[bankNameValue] || []).map(branch => (
-                  <MenuItem key={branch} value={branch}>{branch}</MenuItem>
-                ))}
-              </FormTextField>
+              <Controller
+                name="bankBranch"
+                control={control}
+                render={({ field, fieldState: { error } }) => {
+                  // Filter branches by province first, then by bank if needed
+                  const provinceFilteredBranches = selectedProvince 
+                    ? getBranchesForProvince(selectedProvince)
+                    : allValidBranches;
+                  
+                  // For FNB, further filter by bank
+                  const availableBranches = selectedBankName && isFNBBank(selectedBankName)
+                    ? provinceFilteredBranches.filter(branch => 
+                        getBranchesForBank(selectedBankName).includes(branch as any)
+                      )
+                    : provinceFilteredBranches;
+                  
+                  return (
+                    <Autocomplete
+                      {...field}
+                      options={[...availableBranches]}
+                      value={field.value || null}
+                      onChange={(_, newValue) => field.onChange(newValue || '')}
+                      groupBy={(option) => getBranchGroup(option) || 'Other'}
+                      filterOptions={(options, { inputValue }) => {
+                        if (!inputValue) return options;
+                        const query = inputValue.toLowerCase();
+                        return options.filter(option => 
+                          option.toLowerCase().includes(query)
+                        );
+                      }}
+                      disableClearable={false}
+                      disabled={!selectedBankName || !selectedProvince}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Bank Branch"
+                          error={!!error}
+                          helperText={
+                            error?.message || 
+                            (!selectedBankName 
+                              ? 'Select a bank first' 
+                              : !selectedProvince 
+                                ? 'Select a province first'
+                                : `${availableBranches.length} branches available in ${selectedProvince}`)
+                          }
+                          required
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {params.InputProps.endAdornment}
+                                <Tooltip 
+                                  title={
+                                    <Box>
+                                      <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                                        ⚠️ IMPORTANT: Exact Branch Match Required
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
+                                        Branches are filtered by your selected province. Select the exact branch name.
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ display: 'block', fontStyle: 'italic' }}>
+                                        Type to search branches by name
+                                      </Typography>
+                                    </Box>
+                                  }
+                                  arrow
+                                  placement="top"
+                                >
+                                  <InfoOutlinedIcon 
+                                    sx={{ 
+                                      fontSize: 20, 
+                                      color: 'action.active',
+                                      cursor: 'help',
+                                      mr: 0.5
+                                    }} 
+                                  />
+                                </Tooltip>
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <li {...props} key={option}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                            <Typography variant="body2">{option}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {getBranchGroup(option)}
+                            </Typography>
+                          </Box>
+                        </li>
+                      )}
+                      isOptionEqualToValue={(option, value) => option === value}
+                    />
+                  );
+                }}
+              />
             </Box>
+            
             <Box><FormTextField name="accountNumber" control={control} label="Account Number" /></Box>
             <Box>
               <FormTextField 
@@ -479,12 +626,28 @@ export const CustomerStep: React.FC = () => {
                 label="Account Type"
                 select
               >
-                {ACCOUNT_TYPES.map(type => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
-                ))}
+                <MenuItem value="Savings">Savings</MenuItem>
+                <MenuItem value="Current">Current</MenuItem>
+                <MenuItem value="Fixed Deposit">Fixed Deposit</MenuItem>
               </FormTextField>
             </Box>
           </Box>
+          
+          {/* Visual indicator for branch validation */}
+          {selectedBankName && watch('bankBranch') && (
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip 
+                label="Exact match required" 
+                size="small" 
+                color="error" 
+                variant="outlined"
+                icon={<InfoOutlinedIcon />}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Selected: <strong>{watch('bankBranch')}</strong>
+              </Typography>
+            </Box>
+          )}
         </Section>
         <Section title="Next of Kin" toggle open={openKin} onToggle={()=>setOpenKin(o=>!o)} subtitle="Emergency contact details">
           <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr' } }}>
@@ -493,22 +656,73 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="nextOfKin.phone" control={control} label="Phone Number" /></Box>
             <Box><FormTextField name="nextOfKin.email" control={control} label="Email" /></Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="nextOfKin.address" control={control} label="Address" /></Box>
-            <Box><FormTextField name="nextOfKin.city" control={control} label="City/District" /></Box>
-            <Box><FormTextField name="nextOfKin.province" control={control} label="Province" /></Box>
+            
+            {/* Next of Kin Province Autocomplete */}
+            <Box>
+              <Controller
+                name="nextOfKin.province"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <Autocomplete
+                    options={[...provinces]}
+                    value={field.value || null}
+                    onChange={(_, newValue) => {
+                      field.onChange(newValue || '');
+                      // Reset city when province changes
+                      const currentValues = watch();
+                      if (newValue !== field.value) {
+                        reset({ 
+                          ...currentValues, 
+                          nextOfKin: { 
+                            ...currentValues.nextOfKin, 
+                            city: '' 
+                          } 
+                        });
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Province"
+                        error={!!error}
+                        helperText={error?.message}
+                      />
+                    )}
+                    disableClearable={false}
+                    isOptionEqualToValue={(option, value) => option === value}
+                  />
+                )}
+              />
+            </Box>
+
+            {/* Next of Kin City Autocomplete */}
+            <Box>
+              <Controller
+                name="nextOfKin.city"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <Autocomplete
+                    options={selectedKinProvince ? getCitiesForProvince(selectedKinProvince) : []}
+                    value={field.value || null}
+                    onChange={(_, newValue) => field.onChange(newValue || '')}
+                    disabled={!selectedKinProvince}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="City/District"
+                        error={!!error}
+                        helperText={error?.message || (!selectedKinProvince ? 'Select province first' : '')}
+                      />
+                    )}
+                    disableClearable={false}
+                    isOptionEqualToValue={(option, value) => option === value}
+                  />
+                )}
+              />
+            </Box>
             <Box><FormNRCField name="nextOfKin.nrc" control={control} label="NRC" /></Box>
             <Box><FormTextField name="nextOfKin.nationality" control={control} label="Nationality" /></Box>
-            <Box>
-              <FormTextField 
-                name="nextOfKin.relationship" 
-                control={control} 
-                label="Relationship"
-                select
-              >
-                {RELATIONSHIPS.map(rel => (
-                  <MenuItem key={rel} value={rel}>{rel}</MenuItem>
-                ))}
-              </FormTextField>
-            </Box>
+            <Box><FormTextField name="nextOfKin.relationship" control={control} label="Relationship" /></Box>
           </Box>
         </Section>
         <Section title="Reference" toggle open={openRef} onToggle={()=>setOpenRef(o=>!o)} subtitle="Professional or character reference">

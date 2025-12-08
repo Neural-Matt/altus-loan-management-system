@@ -1,0 +1,402 @@
+/**
+ * Branch Validation Tests
+ * 
+ * Tests for bank branch validation logic to ensure:
+ * 1. All 29 production branches are recognized as valid
+ * 2. Invalid branches are properly rejected
+ * 3. FNB bank detection works correctly
+ * 4. Province-based branch filtering works
+ * 5. City-based filtering works
+ */
+
+import {
+  allValidBranches,
+  bankBranchMap,
+  isValidBranch,
+  getAllBankNames,
+  getBranchesForBank,
+  getBranchGroup,
+  isFNBBank,
+  getNonFNBWarning,
+  validateBankBranch,
+} from '../constants/bankBranches';
+
+import {
+  provinces,
+  citiesByProvince,
+  branchByProvince,
+  getCitiesForProvince,
+  getBranchesForProvince,
+} from '../constants/locationConstants';
+
+describe('Branch Validation - Core Functionality', () => {
+  describe('isValidBranch', () => {
+    test('should accept all 29 production branches', () => {
+      const expectedBranches = [
+        'Manda Hill Branch',
+        'Lusaka Main Branch',
+        'Northmead Branch',
+        'Chilenje Branch',
+        'Woodlands Branch',
+        'Kabwe Branch',
+        'Solwezi Branch',
+        'Chingola Branch',
+        'Mufulira Branch',
+        'Kitwe Branch',
+        'Ndola Main Branch',
+        'Mongu Branch',
+        'Kabwe',
+        'Livingstone Branch',
+        'Luanshya',
+        'Cairo Road',
+        'Manda Hill',
+        'Northmead',
+        'Zambia',
+        'Kafue',
+        'Mazabuka',
+        'Chirundu',
+        'Kasama',
+        'Mpika',
+        'Mansa',
+        'Monze',
+        'Mpongwe',
+        'Choma',
+        'Mansa Branch',
+      ];
+
+      // All expected branches should be valid
+      expectedBranches.forEach((branch) => {
+        expect(isValidBranch(branch)).toBe(true);
+      });
+
+      // Verify count matches
+      expect(allValidBranches.length).toBe(29);
+    });
+
+    test('should reject invalid branches', () => {
+      const invalidBranches = [
+        'Random Branch',
+        'Fake Branch Name',
+        'NonExistent',
+        'East Park Mall', // Not in our list
+        'Garden City', // Not in our list
+        '',
+      ];
+
+      invalidBranches.forEach((branch) => {
+        expect(isValidBranch(branch)).toBe(false);
+      });
+    });
+
+    test('should be case-sensitive', () => {
+      expect(isValidBranch('Manda Hill Branch')).toBe(true);
+      expect(isValidBranch('manda hill branch')).toBe(false);
+      expect(isValidBranch('MANDA HILL BRANCH')).toBe(false);
+    });
+
+    test('should handle edge cases', () => {
+      expect(isValidBranch(null as any)).toBe(false);
+      expect(isValidBranch(undefined as any)).toBe(false);
+      expect(isValidBranch('')).toBe(false);
+      expect(isValidBranch('   ')).toBe(false);
+    });
+  });
+
+  describe('getAllBankNames', () => {
+    test('should return all unique bank names', () => {
+      const banks = getAllBankNames();
+      
+      expect(banks).toContain('First National Bank (FNB)');
+      expect(banks.length).toBeGreaterThan(0);
+      
+      // Should be unique
+      const uniqueBanks = new Set(banks);
+      expect(uniqueBanks.size).toBe(banks.length);
+    });
+  });
+
+  describe('getBranchesForBank', () => {
+    test('should return branches for FNB', () => {
+      const fnbBranches = getBranchesForBank('First National Bank (FNB)');
+      
+      expect(fnbBranches.length).toBeGreaterThan(0);
+      expect(fnbBranches).toContain('Manda Hill Branch');
+      expect(fnbBranches).toContain('Lusaka Main Branch');
+    });
+
+    test('should return all branches for unknown banks', () => {
+      const unknownBranches = getBranchesForBank('Unknown Bank');
+      
+      expect(unknownBranches.length).toBe(allValidBranches.length);
+    });
+
+    test('should handle empty string', () => {
+      const emptyBranches = getBranchesForBank('');
+      
+      expect(emptyBranches.length).toBe(allValidBranches.length);
+    });
+  });
+
+  describe('getBranchGroup', () => {
+    test('should group Lusaka branches correctly', () => {
+      expect(getBranchGroup('Manda Hill Branch')).toBe('Lusaka Province');
+      expect(getBranchGroup('Lusaka Main Branch')).toBe('Lusaka Province');
+      expect(getBranchGroup('Cairo Road')).toBe('Lusaka Province');
+    });
+
+    test('should group Copperbelt branches correctly', () => {
+      expect(getBranchGroup('Kitwe Branch')).toBe('Copperbelt Province');
+      expect(getBranchGroup('Ndola Main Branch')).toBe('Copperbelt Province');
+      expect(getBranchGroup('Chingola Branch')).toBe('Copperbelt Province');
+    });
+
+    test('should handle unknown branches', () => {
+      expect(getBranchGroup('Unknown Branch')).toBe('Other');
+      expect(getBranchGroup('')).toBe('Other');
+    });
+  });
+});
+
+describe('FNB Bank Detection', () => {
+  describe('isFNBBank', () => {
+    test('should identify FNB bank', () => {
+      expect(isFNBBank('First National Bank (FNB)')).toBe(true);
+    });
+
+    test('should identify non-FNB banks', () => {
+      expect(isFNBBank('Zanaco')).toBe(false);
+      expect(isFNBBank('Standard Chartered')).toBe(false);
+      expect(isFNBBank('Stanbic')).toBe(false);
+      expect(isFNBBank('')).toBe(false);
+    });
+
+    test('should be case-sensitive', () => {
+      expect(isFNBBank('first national bank (fnb)')).toBe(false);
+      expect(isFNBBank('FNB')).toBe(false);
+    });
+  });
+
+  describe('getNonFNBWarning', () => {
+    test('should return warning for non-FNB banks', () => {
+      const warning = getNonFNBWarning('Zanaco');
+      
+      expect(warning).toContain('Zanaco');
+      expect(warning).toContain('not fully verified');
+      expect(warning.length).toBeGreaterThan(0);
+    });
+
+    test('should handle FNB (should still return warning)', () => {
+      const warning = getNonFNBWarning('First National Bank (FNB)');
+      
+      expect(warning).toContain('First National Bank (FNB)');
+    });
+  });
+
+  describe('validateBankBranch', () => {
+    test('should validate FNB with valid branch', () => {
+      const result = validateBankBranch('First National Bank (FNB)', 'Manda Hill Branch');
+      
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(result.warning).toBeUndefined();
+    });
+
+    test('should reject FNB with invalid branch', () => {
+      const result = validateBankBranch('First National Bank (FNB)', 'Invalid Branch');
+      
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('not a valid branch');
+    });
+
+    test('should warn for non-FNB with valid branch', () => {
+      const result = validateBankBranch('Zanaco', 'Manda Hill Branch');
+      
+      expect(result.isValid).toBe(true);
+      expect(result.warning).toContain('not fully verified');
+    });
+
+    test('should reject non-FNB with invalid branch', () => {
+      const result = validateBankBranch('Zanaco', 'Invalid Branch');
+      
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
+});
+
+describe('Location-Based Filtering', () => {
+  describe('Province Constants', () => {
+    test('should have all 10 provinces', () => {
+      expect(provinces.length).toBe(10);
+      expect(provinces).toContain('Lusaka Province');
+      expect(provinces).toContain('Copperbelt Province');
+      expect(provinces).toContain('Southern Province');
+    });
+  });
+
+  describe('getCitiesForProvince', () => {
+    test('should return cities for Lusaka Province', () => {
+      const cities = getCitiesForProvince('Lusaka Province');
+      
+      expect(cities.length).toBeGreaterThan(0);
+      expect(cities).toContain('Lusaka');
+      expect(cities).toContain('Kafue');
+    });
+
+    test('should return cities for Copperbelt Province', () => {
+      const cities = getCitiesForProvince('Copperbelt Province');
+      
+      expect(cities.length).toBeGreaterThan(0);
+      expect(cities).toContain('Kitwe');
+      expect(cities).toContain('Ndola');
+      expect(cities).toContain('Chingola');
+    });
+
+    test('should return empty array for unknown province', () => {
+      const cities = getCitiesForProvince('Unknown Province');
+      
+      expect(cities.length).toBe(0);
+    });
+
+    test('should handle empty string', () => {
+      const cities = getCitiesForProvince('');
+      
+      expect(cities.length).toBe(0);
+    });
+  });
+
+  describe('getBranchesForProvince', () => {
+    test('should return branches for Lusaka Province', () => {
+      const branches = getBranchesForProvince('Lusaka Province');
+      
+      expect(branches.length).toBeGreaterThan(0);
+      expect(branches).toContain('Manda Hill Branch');
+      expect(branches).toContain('Lusaka Main Branch');
+      expect(branches).toContain('Cairo Road');
+    });
+
+    test('should return branches for Copperbelt Province', () => {
+      const branches = getBranchesForProvince('Copperbelt Province');
+      
+      expect(branches.length).toBeGreaterThan(0);
+      expect(branches).toContain('Kitwe Branch');
+      expect(branches).toContain('Ndola Main Branch');
+    });
+
+    test('should return all branches for unknown province', () => {
+      const branches = getBranchesForProvince('Unknown Province');
+      
+      expect(branches.length).toBe(allValidBranches.length);
+    });
+  });
+
+  describe('Province-Branch Consistency', () => {
+    test('all provinces in branchByProvince should exist in provinces array', () => {
+      Object.keys(branchByProvince).forEach((province) => {
+        if (province !== 'Other') {
+          expect(provinces).toContain(province as any);
+        }
+      });
+    });
+
+    test('all branches in branchByProvince should be in allValidBranches', () => {
+      Object.values(branchByProvince).forEach((branches) => {
+        branches.forEach((branch) => {
+          expect(allValidBranches).toContain(branch);
+        });
+      });
+    });
+
+    test('every branch should be in at least one province', () => {
+      const allProvinceBranches = new Set<string>();
+      
+      Object.values(branchByProvince).forEach((branches) => {
+        branches.forEach((branch) => allProvinceBranches.add(branch));
+      });
+
+      allValidBranches.forEach((branch) => {
+        expect(allProvinceBranches.has(branch)).toBe(true);
+      });
+    });
+  });
+});
+
+describe('Integration Tests', () => {
+  describe('Cascading Dropdown Flow', () => {
+    test('user selects province, gets filtered cities and branches', () => {
+      const selectedProvince = 'Lusaka Province';
+      
+      // Get cities for province
+      const cities = getCitiesForProvince(selectedProvince);
+      expect(cities.length).toBeGreaterThan(0);
+      
+      // Get branches for province
+      const branches = getBranchesForProvince(selectedProvince);
+      expect(branches.length).toBeGreaterThan(0);
+      
+      // Verify all branches are valid
+      branches.forEach((branch) => {
+        expect(isValidBranch(branch)).toBe(true);
+      });
+    });
+
+    test('user selects FNB bank, gets only FNB branches', () => {
+      const selectedBank = 'First National Bank (FNB)';
+      
+      expect(isFNBBank(selectedBank)).toBe(true);
+      
+      const branches = getBranchesForBank(selectedBank);
+      expect(branches.length).toBeGreaterThan(0);
+      
+      // All branches should be valid
+      branches.forEach((branch) => {
+        expect(isValidBranch(branch)).toBe(true);
+      });
+    });
+
+    test('user selects non-FNB bank, gets warning', () => {
+      const selectedBank = 'Zanaco';
+      
+      expect(isFNBBank(selectedBank)).toBe(false);
+      
+      const warning = getNonFNBWarning(selectedBank);
+      expect(warning.length).toBeGreaterThan(0);
+      
+      const branches = getBranchesForBank(selectedBank);
+      expect(branches.length).toBe(allValidBranches.length);
+    });
+  });
+
+  describe('Complete Validation Flow', () => {
+    test('valid FNB submission', () => {
+      const bank = 'First National Bank (FNB)';
+      const branch = 'Manda Hill Branch';
+      
+      const result = validateBankBranch(bank, branch);
+      
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(result.warning).toBeUndefined();
+    });
+
+    test('invalid FNB submission', () => {
+      const bank = 'First National Bank (FNB)';
+      const branch = 'Fake Branch';
+      
+      const result = validateBankBranch(bank, branch);
+      
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    test('valid non-FNB submission with warning', () => {
+      const bank = 'Zanaco';
+      const branch = 'Manda Hill Branch';
+      
+      const result = validateBankBranch(bank, branch);
+      
+      expect(result.isValid).toBe(true);
+      expect(result.warning).toBeDefined();
+    });
+  });
+});
