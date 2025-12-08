@@ -19,7 +19,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
       # Mount build directory with absolute path to ensure all chunks are accessible
-      - /opt/altus-app/current/build:/usr/share/nginx/html:ro
+      - /opt/altus-app/current/build:/usr/share/nginx/html
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/index.html"]
