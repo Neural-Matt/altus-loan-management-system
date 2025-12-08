@@ -953,7 +953,21 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
         Gender: mapToCode(data.Gender || data.gender || "Male", GENDER_ID_MAP, "Gender"),
         LoanAmount: data.LoanAmount || data.loanAmount || 0,
         FinancialInstitutionName: mapToCode(data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank", BANK_ID_MAP, "FinancialInstitutionName"),
-        FinancialInstitutionBranchName: data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || "Head Office",
+        FinancialInstitutionBranchName: (() => {
+          const bankName = data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank";
+          const providedBranch = data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || "Head Office";
+          
+          // Look up FIBranchId from the nested map using bank name + branch name
+          const branchIdMap = BANK_BRANCH_ID_MAP[bankName];
+          if (branchIdMap && branchIdMap[providedBranch]) {
+            const fibBranchId = branchIdMap[providedBranch];
+            console.log(`[submitLoanRequest] Mapped bank="${bankName}" branch="${providedBranch}" to FIBranchId: "${fibBranchId}"`);
+            return fibBranchId;
+          }
+          
+          console.warn(`[submitLoanRequest] No FIBranchId found for bank="${bankName}" branch="${providedBranch}". Using branch name as fallback.`);
+          return providedBranch;
+        })(),
         AccountNumber: data.AccountNumber || data.accountNumber || "",
         AccountType: mapToCode(data.AccountType || data.accountType || "Current", ACCOUNT_TYPE_ID_MAP, "AccountType"),
         ReferrerName: data.ReferrerName || data.referrerName || "",
@@ -982,22 +996,13 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
     // Always include personal details as per working API calls
     console.log('Debug: Loan request - personal details included for both New and Existing customers');
 
-    // Validate branch name before sending
-    const branchName = uatRequest.body.FinancialInstitutionBranchName;
-    const isValidBranch = isValidBranchName(branchName);
-    console.log('🔐 API Layer Branch Validation:', {
-      branchName,
-      isValid: isValidBranch,
-      allValidBranches: [
-        "Head Office", "International Bank", "Lusaka Business Centre", 
-        "Cairo Business Centre", "Ndola Business Centre", "Kitwe Clearing Centre"
-        // ... (65 total branches available in ALTUS_VALID_BRANCHES)
-      ]
+    // Log the FIBranchId being sent to API
+    const fibBranchId = uatRequest.body.FinancialInstitutionBranchName;
+    console.log('🔐 API Layer - FIBranchId Being Sent:', {
+      FIBranchId: fibBranchId,
+      isFIBranchIdFormat: fibBranchId && fibBranchId.startsWith('BRH'),
+      type: typeof fibBranchId
     });
-
-    if (!isValidBranch) {
-      console.warn('⚠️ WARNING: Invalid branch being sent to API:', branchName);
-    }
 
     console.log("FINAL LOAN PAYLOAD (with codes):", JSON.stringify(uatRequest, null, 2));
 
