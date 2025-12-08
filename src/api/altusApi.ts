@@ -12,7 +12,7 @@ import type {
 } from '../types/altus';
 import { CURRENT_API_CONFIG } from '../config/apiConfig';
 import { getDefaultBranchForProvince, isValidBranchName, getBranchByPartialMatch } from '../constants/branchConstants';
-import { PROVINCE_ID_MAP, DISTRICT_ID_MAP, DISTRICT_SEQUENTIAL_MAP, BRANCH_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP, TITLE_ID_MAP, GENDER_ID_MAP, ACCOUNT_TYPE_ID_MAP, EMPLOYMENT_TYPE_ID_MAP, RELATIONSHIP_ID_MAP, COUNTRY_CODE_MAP, PROVINCE_CODE_MAP } from '../constants/altusLookups';
+import { PROVINCE_ID_MAP, DISTRICT_SEQUENTIAL_MAP, BRANCH_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP, TITLE_ID_MAP, GENDER_ID_MAP, ACCOUNT_TYPE_ID_MAP, EMPLOYMENT_TYPE_ID_MAP, RELATIONSHIP_ID_MAP, COUNTRY_CODE_MAP } from '../constants/altusLookups';
 import mapToCode from '../utils/mapToCode';
 
 // API Configuration - Uses environment-aware config (proxy in prod, direct in dev)
@@ -904,12 +904,12 @@ export async function getLoanProductDetails(productCode: string, employerId: str
 // ============================================================================
 
 // Submit a new salaried loan request (returns ApplicationNumber needed for document upload)
-// UAT Endpoint: POST http://3.6.174.212:5013/API/LoanRequest/Salaried
+// UAT Endpoint: POST http://3.6.174.212:5010/API/LoanRequestServices/SubmitLoanRequest
 export async function submitLoanRequest(data: any): Promise<LoanRequestResponse> {
   try {
-    // Create Loan Request client (port 5013 as per UAT documentation)
+    // Create Loan Request client (port 5010 as per UAT documentation)
     const loanRequestClient = axios.create({
-      baseURL: ALTUS_BASE_URLS.DOCUMENT_SERVICES,
+      baseURL: ALTUS_BASE_URLS.LOAN_SERVICES,
       timeout: REQUEST_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
@@ -1000,7 +1000,7 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
 
     console.log("FINAL LOAN PAYLOAD (with codes):", JSON.stringify(uatRequest, null, 2));
 
-    const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequest/Salaried', uatRequest);
+    const response = await loanRequestClient.post<LoanRequestResponse>('API/LoanRequestServices/SubmitLoanRequest', uatRequest);
 
     console.log('Debug: Loan Request Response:', response.data);
     return response.data; // Return full UAT response

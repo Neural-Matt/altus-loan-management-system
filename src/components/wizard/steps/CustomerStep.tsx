@@ -12,7 +12,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { getBranchesForBank, getBranchGroup, allValidBranches } from '../../../constants/bankBranches';
 import { provinces, citiesByProvince, branchByProvince, getCitiesForProvince, getBranchesForProvince } from '../../../constants/locationConstants';
-import { RELATIONSHIP_ID_MAP, BANK_ID_MAP } from '../../../constants/altusLookups';
+import { RELATIONSHIP_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP } from '../../../constants/altusLookups';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -23,18 +23,23 @@ export const CustomerStep: React.FC = () => {
 
   // Helper function to get human-readable bank names for display
   const getBankDisplayNames = (): string[] => {
-    return Object.values(BANK_ID_MAP);
+    return Object.keys(BANK_ID_MAP);
   };
 
   // Helper function to convert bank display name to ALTUS ID
   const getBankIdFromName = (bankName: string): string => {
-    const entry = Object.entries(BANK_ID_MAP).find(([id, name]) => name === bankName);
-    return entry ? entry[0] : '';
+    return BANK_ID_MAP[bankName] || '';
   };
 
   // Helper function to convert ALTUS ID to bank display name
   const getBankNameFromId = (bankId: string): string => {
-    return BANK_ID_MAP[bankId] || '';
+    const entry = Object.entries(BANK_ID_MAP).find(([name, id]) => id === bankId);
+    return entry ? entry[0] : '';
+  };
+
+  // Helper function to convert branch display name to ALTUS FIBranchId
+  const getBranchIdFromName = (bankName: string, branchName: string): string => {
+    return BANK_BRANCH_ID_MAP[bankName]?.[branchName] || '';
   };
 
   const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
@@ -186,7 +191,7 @@ export const CustomerStep: React.FC = () => {
           bankName: getBankIdFromName(values.bankName) || values.bankName, // Convert to ALTUS ID
           accountNumber: values.accountNumber,
           accountType: values.accountType,
-          branchCode: values.bankBranch
+          branchCode: getBranchIdFromName(values.bankName, values.bankBranch) || values.bankBranch // Convert branch name to FIBranchId
         }
       };
 
@@ -531,13 +536,22 @@ export const CustomerStep: React.FC = () => {
                 name="bankBranch"
                 control={control}
                 render={({ field, fieldState: { error } }) => {
-                  // Filter branches by province first, then by bank if needed
+                  // Filter branches by province first
                   const provinceFilteredBranches = selectedProvince 
                     ? getBranchesForProvince(selectedProvince)
                     : allValidBranches;
                   
-                  // Filter branches by province
-                  const availableBranches = provinceFilteredBranches;
+                  // Further filter by selected bank if one is selected
+                  let availableBranches = provinceFilteredBranches;
+                  if (selectedBankName) {
+                    const bankId = getBankIdFromName(selectedBankName);
+                    const bankFilteredBranches = bankId ? getBranchesForBank(bankId) : allValidBranches;
+                    
+                    // Intersect province and bank filtered branches
+                    availableBranches = provinceFilteredBranches.filter(branch => 
+                      bankFilteredBranches.includes(branch as any)
+                    );
+                  }
                   
                   return (
                     <Autocomplete

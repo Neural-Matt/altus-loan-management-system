@@ -268,7 +268,23 @@ export const getCitiesForProvince = (province: string): readonly string[] => {
  * Get all branches for a given province
  */
 export const getBranchesForProvince = (province: string): readonly string[] => {
-  return branchByProvince[province] || [];
+  // Map province names to the keys used in branchByProvince
+  const provinceKeyMap: Record<string, string> = {
+    'Central': 'Central Province',
+    'Copperbelt': 'Copperbelt Province', 
+    'Eastern': 'Eastern Province',
+    'Luapula': 'Luapula Province',
+    'Lusaka': 'Lusaka Province',
+    'Muchinga': 'Muchinga Province',
+    'Northern': 'Northern Province',
+    'North-Western': 'North-Western Province',
+    'Southern': 'Southern Province',
+    'Western': 'Western Province',
+    'Others': 'Others Province'
+  };
+  
+  const provinceKey = provinceKeyMap[province] || province;
+  return branchByProvince[provinceKey] || [];
 };
 
 /**
