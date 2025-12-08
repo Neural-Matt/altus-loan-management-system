@@ -1,0 +1,1 @@
+﻿bash -c 'cd /opt/altus-app/current && docker-compose down --timeout 10 && sleep 2 && docker-compose up -d'
