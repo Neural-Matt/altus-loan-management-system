@@ -9,6 +9,7 @@ export interface NextOfKinInfo {
   address?: string;
   city?: string;
   province?: string;
+  country?: string;
   nrc?: string;
   nationality?: string;
   relationship?: string;

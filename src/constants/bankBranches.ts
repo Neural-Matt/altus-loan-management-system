@@ -79,53 +79,486 @@ export type ValidBranchName = typeof allValidBranches[number];
 
 /**
  * Mapping of Zambian banks to their ALTUS-accepted branch names.
- * 
- * NOTE: Currently, ALTUS UAT primarily accepts FNB branch names.
- * Other banks are included for future expansion and frontend flexibility.
+ * Updated with proper bank-branch associations based on ALTUS API mappings.
+ * Keys are ALTUS FinancialInstitutionId values for direct API compatibility.
  */
 export const bankBranchMap = {
-  // First National Bank - Primary bank with full branch coverage
-  'First National Bank': allValidBranches,
-  'FNB': allValidBranches,
-  'First National Bank Zambia': allValidBranches,
-  
-  // Other major banks - Using FNB branch names for ALTUS compatibility
-  // These can be expanded when ALTUS adds bank-specific branch validation
-  'Stanbic Bank Zambia': allValidBranches,
-  'Stanbic Bank': allValidBranches,
-  'Stanbic': allValidBranches,
-  
-  'ABSA Zambia': allValidBranches,
-  'Absa': allValidBranches,
-  'Barclays Bank Zambia': allValidBranches, // Legacy name
-  
-  'Standard Chartered Bank Zambia': allValidBranches,
-  'Standard Chartered': allValidBranches,
-  
-  'Zambia National Commercial Bank': allValidBranches,
-  'Zanaco': allValidBranches,
-  'ZNBC': allValidBranches,
-  
-  'Indo Zambia Bank': allValidBranches,
-  'Indo-Zambia Bank': allValidBranches,
-  'IZB': allValidBranches,
-  
-  'Investrust Bank': allValidBranches,
-  'Investrust': allValidBranches,
-  
-  // Additional banks
-  'Access Bank': allValidBranches,
-  'Access Bank Zambia Limited': allValidBranches,
-  'Cavmont Bank': allValidBranches,
-  'Ecobank': allValidBranches,
-  'First Capital Bank': allValidBranches,
-  'United Bank for Africa': allValidBranches,
-  'Citibank Zambia': allValidBranches,
-  'Atlas Mara Bank': allValidBranches,
-  'Bank of China': allValidBranches,
-  'National Savings and Credit Bank': allValidBranches,
-  'Natsave': allValidBranches,
-  'Bayport Financial Services': allValidBranches,
+  // ZNBS - Zambia National Building Society
+  'BNK20201490000000622': [
+    'Banking Society Business Park',
+    'Mufulira',
+    'Mpika',
+    'Mansa',
+    'Kapiri Mposhi',
+    'Livingstone',
+    'Mazabuka',
+    'Mongu',
+    'Luanshya',
+    'Solwezi',
+    'Kasama',
+    'Society House',
+    'Permanent House',
+    'Kabwe',
+    'Chipata',
+    'Choma',
+    'Soweto Agency',
+    'Chililabombwe',
+    'Chingola',
+    'Nyimba',
+    'Kitwe',
+    'Ndola'
+  ],
+
+  // AB Bank
+  'BNK20200430000000002': [
+    'Head Office',
+    'Cairo Main',
+    'Chilenje',
+    'Matero',
+    'Kalinglinga',
+    'Chelston',
+    'Garden',
+    'Kitwe'
+  ],
+
+  // Access Bank
+  'BNK20200430000000006': [
+    'Head Office',
+    'Cairo Road',
+    'Longacres',
+    'Acacia',
+    'Makeni',
+    'Ndola',
+    'Kitwe',
+    'Solwezi'
+  ],
+  'BNK20203020000000662': [
+    'Head Office',
+    'Northend',
+    'Longacres',
+    'Arcades',
+    'Ndola Centre Branch',
+    'Kitwe',
+    'Makeni',
+    'Mansa Centre Branch',
+    'Mbala Centre Branch',
+    'Mbala Main Branch',
+    'Ndola Main Branch',
+    'City Mall Branch - Solwezi',
+    'Solwezi Main Branch'
+  ],
+
+  // Atlas Mara Bank
+  'BNK20200430000000007': [
+    'Lusaka'
+  ],
+
+  // Bank of China
+  'BNK20200430000000008': [
+    'Lusaka',
+    'Kitwe'
+  ],
+
+  // ABSA Bank
+  'BNK20200440000000035': [
+    'Head Office',
+    'Head Office - Elunda',
+    'Lusaka - Kamwala',
+    'Lusaka - Northend',
+    'Lusaka - Matero',
+    'Lusaka Business Centre',
+    'Lusaka Longacres',
+    'Chilenje',
+    'Lusaka Industrial',
+    'University of Zambia Lusaka',
+    'Soweto',
+    'Chelstone',
+    'Kabwata',
+    'Lusaka - Chawama',
+    'Manda Hill',
+    'Lusaka Operation Processing Centre',
+    'Kabelenga',
+    'Elunda Premium Banking Centre',
+    'Ndola Business Centre',
+    'Ndola Operations Processing Centre',
+    'Ndola - Masala',
+    'Kitwe Business Centre',
+    'Kitwe Chimwemwe',
+    'Kitwe Parklands Center',
+    'Kitwe Operations Processing Centre',
+    'Chingola & Prestige',
+    'Chililabombwe',
+    'Mufulira & Prestige',
+    'Kalulushi',
+    'Luanshya',
+    'Kasama',
+    'Kabwe & Prestige',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mbala',
+    'Nakonde',
+    'Mpika',
+    'Mansa',
+    'Mkushi',
+    'Kapiri Mposhi',
+    'Lundazi',
+    'Mfuwe',
+    'Solwezi',
+    'Mongu',
+    'Kafue',
+    'Chirundu',
+    'Mazabuka',
+    'Monze',
+    'Kalomo',
+    'Petauke',
+    'Chongwe',
+    'Katete',
+    'Chambishi',
+    'Mumbwa',
+    'Levy'
+  ],
+  'BNK20200830000000616': [
+    'Petauke Branch',
+    'Manda Hill Branch',
+    'Matero Branch',
+    'Mkushi Branch',
+    'Mbala Branch Zambia',
+    'Longacres Prestige Branch',
+    'Lusaka Corporate Service Centre Branch',
+    'Mansa Branch'
+  ],
+
+  // Cavmont Bank
+  'BNK20200440000000036': [
+    'Head Office',
+    'Lusaka Square',
+    'Lusaka South End',
+    'Kalingalinga',
+    'Tazara',
+    'Garden',
+    'Makumbi',
+    'Bread of Life',
+    'Ndola',
+    'Kitwe'
+  ],
+
+  // Citibank Zambia
+  'BNK20200450000000043': [
+    'Lusaka'
+  ],
+
+  // Ecobank
+  'BNK20200450000000044': [
+    'Lusaka'
+  ],
+
+  // First Alliance Bank
+  'BNK20200450000000046': [
+    'Lusaka'
+  ],
+
+  // First Capital Bank
+  'BNK20200450000000049': [
+    'Lusaka'
+  ],
+
+  // First National Bank - Most comprehensive branch network
+  'BNK20200480000000053': [
+    'Commercial Suite',
+    'Industrial',
+    'FNB Operation Centre',
+    'Head Office',
+    'Electronic Banking',
+    'Treasury',
+    'Manda Hill',
+    'Vehicle and Asset Finance',
+    'Makeni Mall',
+    'Home Loan',
+    'Branchless Banking',
+    'Electronic Wallet',
+    'CIB Corporate',
+    'Premier Banking',
+    'Agriculture Centre',
+    'Corporate Investment Banking',
+    'Chilenje',
+    'Cash Centre',
+    'PHI Branch',
+    'Cairo',
+    'Kabulonga',
+    'Ndola',
+    'Jacaranda Mall',
+    'Kitwe',
+    'Mukuba Mall',
+    'Kitwe Industrial',
+    'Chingola',
+    'Mufulira',
+    'Luanshya',
+    'Kabwe',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mkushi',
+    'Solwezi',
+    'Kalumbila',
+    'Mazabuka'
+  ],
+  'FNB': [
+    'Commercial Suite',
+    'Industrial',
+    'FNB Operation Centre',
+    'Head Office',
+    'Electronic Banking',
+    'Treasury',
+    'Manda Hill',
+    'Vehicle and Asset Finance',
+    'Makeni Mall',
+    'Home Loan',
+    'Branchless Banking',
+    'Electronic Wallet',
+    'CIB Corporate',
+    'Premier Banking',
+    'Agriculture Centre',
+    'Corporate Investment Banking',
+    'Chilenje',
+    'Cash Centre',
+    'PHI Branch',
+    'Cairo',
+    'Kabulonga',
+    'Ndola',
+    'Jacaranda Mall',
+    'Kitwe',
+    'Mukuba Mall',
+    'Kitwe Industrial',
+    'Chingola',
+    'Mufulira',
+    'Luanshya',
+    'Kabwe',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mkushi',
+    'Solwezi',
+    'Kalumbila',
+    'Mazabuka'
+  ],
+
+  // Indo Zambia Bank
+  'BNK20200520000000062': [
+    'Lusaka'
+  ],
+
+  // Intermarket Banking Corporation
+  'BNK20200520000000065': [
+    'Lusaka'
+  ],
+
+  // Investrust Bank
+  'BNK20200550000000081': [
+    'Lusaka'
+  ],
+
+  // National Savings and Credit Bank
+  'BNK20200760000000614': [
+    'Cosmopolitan'
+  ],
+
+  // Natsave
+  'BNK20201490000000621': [
+    'Chama',
+    'Chavuma',
+    'Chilubi Island',
+    'Chimwemwe',
+    'Chinsali',
+    'Chipata',
+    'Choma',
+    'Chongwe',
+    'Kabwe',
+    'Kalabo',
+    'Kaputa',
+    'Kasama',
+    'Kasempa',
+    'Kazungula',
+    'Kitwe',
+    'Livingstone',
+    'Luanshya',
+    'Lumwana',
+    'Lufwanyama',
+    'Lukulu',
+    'Credit Centre',
+    'Lusaka Chilenje',
+    'Lusaka Main Branch',
+    'Lusaka Matero',
+    'Lusaka Northend',
+    'Luwingu',
+    'Mansa',
+    'Mongu',
+    'Mpika',
+    'Mporokoso',
+    'Mpongwe',
+    'Mumbwa',
+    'Mwense',
+    'Nchelenge',
+    'Ndola',
+    'Petauke',
+    'Solwezi',
+    'Zambezi',
+    'Head office',
+    'Cosmopolitan'
+  ],
+
+  // New Bank
+  'BNK20200690000000253': [
+    'Lusaka'
+  ],
+
+  // Stanbic Bank Zambia
+  'BNK20200590000000113': [
+    'Head Office',
+    'Lusaka',
+    'Lusaka Industrial',
+    'Matero',
+    'Mulungushi',
+    'Soweto',
+    'Kabwata',
+    'Private Banking',
+    'Kabulonga',
+    'Woodlands',
+    'Waterfall',
+    'Cosmopolitan Mall',
+    'East Park Mall',
+    'Ndola Main',
+    'Arcades',
+    'Ndola South',
+    'Kafubu Mall',
+    'Kitwe',
+    'Chisokone',
+    'Mukuba Mall',
+    'Chingola',
+    'Mufulira',
+    'Kabwe',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mkushi',
+    'Solwezi',
+    'Kafue',
+    'Mazabuka',
+    'Lumwana',
+    'Chambishi'
+  ],
+  'Stanbic Bank': [
+    'Head Office',
+    'Lusaka',
+    'Lusaka Industrial',
+    'Matero',
+    'Mulungushi',
+    'Soweto',
+    'Kabwata',
+    'Private Banking',
+    'Kabulonga',
+    'Woodlands',
+    'Waterfall',
+    'Cosmopolitan Mall',
+    'East Park Mall',
+    'Ndola Main',
+    'Arcades',
+    'Ndola South',
+    'Kafubu Mall',
+    'Kitwe',
+    'Chisokone',
+    'Mukuba Mall',
+    'Chingola',
+    'Mufulira',
+    'Kabwe',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mkushi',
+    'Solwezi',
+    'Kafue',
+    'Mazabuka',
+    'Lumwana',
+    'Chambishi'
+  ],
+  'Stanbic': [
+    'Head Office',
+    'Lusaka',
+    'Lusaka Industrial',
+    'Matero',
+    'Mulungushi',
+    'Soweto',
+    'Kabwata',
+    'Private Banking',
+    'Kabulonga',
+    'Woodlands',
+    'Waterfall',
+    'Cosmopolitan Mall',
+    'East Park Mall',
+    'Ndola Main',
+    'Arcades',
+    'Ndola South',
+    'Kafubu Mall',
+    'Kitwe',
+    'Chisokone',
+    'Mukuba Mall',
+    'Chingola',
+    'Mufulira',
+    'Kabwe',
+    'Livingstone',
+    'Chipata',
+    'Choma',
+    'Mkushi',
+    'Solwezi',
+    'Kafue',
+    'Mazabuka',
+    'Lumwana',
+    'Chambishi'
+  ],
+
+  // Standard Chartered Bank Zambia
+  'BNK20200590000000119': [
+    'Lusaka'
+  ],
+  'Standard Chartered': [
+    'Lusaka'
+  ],
+
+  // The United Bank of Zambia
+  'BNK20200590000000120': [
+    'Lusaka'
+  ],
+
+  // United Bank for Africa
+  'BNK20200590000000121': [
+    'Lusaka'
+  ],
+
+  // Zambia Industrial Commercial Bank
+  'BNK20200590000000122': [
+    'Lusaka'
+  ],
+
+  // Zambia National Commercial Bank
+  'BNK20200590000000123': [
+    'Head Office',
+    'Lusaka Main Branch',
+    'Ndola',
+    'Kitwe',
+    'Livingstone',
+    'Kasama',
+    'Chipata'
+  ],
+
+  // Bayport Financial Services
+  'BNK20213160000000663': [
+    'Lusaka Business Centre'
+  ],
+
+  // FAB
+  'BNK20222300000000664': [
+    'Lusaka Main Branch'
+  ]
 } as const satisfies Record<string, readonly string[]>;
 
 // Type-safe bank name type
@@ -220,10 +653,10 @@ export const isValidBranch = (branchName: string): boolean => {
 };
 
 /**
- * Get branches for a specific bank
+ * Get branches for a specific bank using ALTUS FinancialInstitutionId
  */
-export const getBranchesForBank = (bankName: string): readonly string[] => {
-  return bankBranchMap[bankName as BankName] || allValidBranches;
+export const getBranchesForBank = (bankId: string): readonly string[] => {
+  return bankBranchMap[bankId as BankName] || allValidBranches;
 };
 
 /**
@@ -245,18 +678,17 @@ export const searchBranches = (query: string, bankName?: string): string[] => {
 };
 
 /**
- * Check if a bank is FNB (fully validated by ALTUS)
+ * Check if a bank is FNB using ALTUS FinancialInstitutionId
  */
-export const isFNBBank = (bankName: string): boolean => {
-  const fnbVariants = ['First National Bank', 'FNB', 'First National Bank Zambia'];
-  return fnbVariants.includes(bankName);
+export const isFNBBank = (bankId: string): boolean => {
+  return bankId === 'BNK20200480000000053'; // FNB ALTUS ID
 };
 
 /**
- * Get validation warning for non-FNB banks
+ * Get validation warning for non-FNB banks using ALTUS ID
  */
-export const getNonFNBWarning = (bankName: string): string | null => {
-  if (isFNBBank(bankName)) {
+export const getNonFNBWarning = (bankId: string): string | null => {
+  if (isFNBBank(bankId)) {
     return null;
   }
   return `⚠️ Warning: Only FNB branches are fully validated by ALTUS API. Other banks may cause validation errors. We recommend using FNB for guaranteed approval.`;

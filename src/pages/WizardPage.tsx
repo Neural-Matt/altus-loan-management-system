@@ -69,10 +69,22 @@ const WizardContent: React.FC<{ steps:any; validators:any; }> = ({ steps, valida
         totalInterest: loan.emiResult?.totalInterest || 0,
         totalPayable: loan.emiResult?.totalPayable || 0,
         
-        // Document IDs from uploaded documents
-        documentIds: documents
-          .filter(doc => doc.id && doc.status === 'uploaded')
-          .map(doc => doc.id!)
+        // Next of Kin details
+        kinName: customer.nextOfKin?.firstName ? `${customer.nextOfKin.firstName} ${customer.nextOfKin.lastName || ''}`.trim() : '',
+        kinRelationship: customer.nextOfKin?.relationship || '',
+        kinMobileNo: customer.nextOfKin?.phone || '',
+        kinAddress: customer.nextOfKin?.address || '',
+        kinNRC: customer.nextOfKin?.nrc || '',
+        kinProvinceName: (customer.nextOfKin?.province || "").replace(" Province", ""),
+        kinDistrictName: customer.nextOfKin?.city || '',
+        kinCountryName: customer.nextOfKin?.country || 'Zambia',
+        
+        // Reference details
+        referrerName: customer.reference?.name || '',
+        referrerRelationType: customer.reference?.relationship || '',
+        referrerContactNo: customer.reference?.phone || '',
+        referrerPhysicalAddress: customer.reference?.address || '',
+        referrerNRC: customer.reference?.nrc || '',
       };
 
       push('Submitting loan request...', 'info');

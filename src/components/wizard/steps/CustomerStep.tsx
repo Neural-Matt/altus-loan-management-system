@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema, CustomerFormValues } from '../../../validation/schemas';
-import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem, Autocomplete, TextField, Chip, Tooltip, Alert } from '@mui/material';
+import { Box, Typography, Paper, Collapse, IconButton, Stack, MenuItem, Autocomplete, TextField, Chip, Tooltip } from '@mui/material';
 import { FormTextField } from '../../form/FormTextField';
 import { FormNRCField } from '../../form/FormNRCField';
 import { useWizardData } from '../WizardDataContext';
@@ -10,9 +10,9 @@ import { useAltus } from '../../../context/AltusContext';
 import { useSnackbar } from '../../feedback/SnackbarProvider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import WarningIcon from '@mui/icons-material/Warning';
-import { getAllBankNames, getBranchesForBank, getBranchGroup, allValidBranches, isFNBBank, getNonFNBWarning } from '../../../constants/bankBranches';
+import { getBranchesForBank, getBranchGroup, allValidBranches } from '../../../constants/bankBranches';
 import { provinces, citiesByProvince, branchByProvince, getCitiesForProvince, getBranchesForProvince } from '../../../constants/locationConstants';
+import { RELATIONSHIP_ID_MAP, BANK_ID_MAP, BANK_BRANCH_ID_MAP } from '../../../constants/altusLookups';
 
 export const CustomerStep: React.FC = () => {
   const { customer, setCustomer } = useWizardData();
@@ -20,6 +20,27 @@ export const CustomerStep: React.FC = () => {
   const { push } = useSnackbar();
   const [openKin, setOpenKin] = React.useState(true);
   const [openRef, setOpenRef] = React.useState(false);
+
+  // Helper function to get human-readable bank names for display
+  const getBankDisplayNames = (): string[] => {
+    return Object.keys(BANK_ID_MAP);
+  };
+
+  // Helper function to convert bank display name to ALTUS ID
+  const getBankIdFromName = (bankName: string): string => {
+    return BANK_ID_MAP[bankName] || '';
+  };
+
+  // Helper function to convert ALTUS ID to bank display name
+  const getBankNameFromId = (bankId: string): string => {
+    const entry = Object.entries(BANK_ID_MAP).find(([name, id]) => id === bankId);
+    return entry ? entry[0] : '';
+  };
+
+  // Helper function to convert branch display name to ALTUS FIBranchId
+  const getBranchIdFromName = (bankName: string, branchName: string): string => {
+    return BANK_BRANCH_ID_MAP[bankName]?.[branchName] || '';
+  };
 
   const { control, handleSubmit, reset, watch, formState: { errors }, trigger } = useForm<CustomerFormValues>({
     defaultValues: {
@@ -167,10 +188,10 @@ export const CustomerStep: React.FC = () => {
           address: values.nextOfKin?.address
         },
         bankDetails: {
-          bankName: values.bankName,
+          bankName: getBankIdFromName(values.bankName) || values.bankName, // Convert to ALTUS ID
           accountNumber: values.accountNumber,
           accountType: values.accountType,
-          branchCode: values.bankBranch
+          branchCode: getBranchIdFromName(values.bankName, values.bankBranch) || values.bankBranch // Convert branch name to FIBranchId
         }
       };
 
@@ -250,11 +271,11 @@ export const CustomerStep: React.FC = () => {
                 label="Title"
                 select
               >
-                <MenuItem value="Mr">Mr</MenuItem>
-                <MenuItem value="Mrs">Mrs</MenuItem>
-                <MenuItem value="Miss">Miss</MenuItem>
-                <MenuItem value="Ms">Ms</MenuItem>
-                <MenuItem value="Dr">Dr</MenuItem>
+                <MenuItem value="Mr">Mr.</MenuItem>
+                <MenuItem value="Mrs">Mrs.</MenuItem>
+                <MenuItem value="Miss">Miss.</MenuItem>
+                <MenuItem value="Ms">Ms.</MenuItem>
+                <MenuItem value="Dr">Dr.</MenuItem>
               </FormTextField>
             </Box>
             <Box></Box>
@@ -476,18 +497,17 @@ export const CustomerStep: React.FC = () => {
                 render={({ field, fieldState: { error } }) => (
                   <Autocomplete
                     {...field}
-                    options={getAllBankNames()}
+                    options={getBankDisplayNames()}
                     value={field.value || null}
                     onChange={(_, newValue) => {
                       field.onChange(newValue || '');
                       // Reset branch when bank changes
                       if (newValue !== field.value) {
                         const currentBranch = watch('bankBranch');
-                        const newBranches = selectedProvince 
-                          ? getBranchesForProvince(selectedProvince)
-                          : allValidBranches;
+                        const bankId = getBankIdFromName(newValue || '');
+                        const newBranches = bankId ? getBranchesForBank(bankId) : allValidBranches;
                         if (!newBranches.includes(currentBranch as any)) {
-                          // Clear branch if it's not valid for the new province
+                          // Clear branch if it's not valid for the new bank
                           reset({ ...watch(), bankBranch: '' });
                         }
                       }
@@ -508,14 +528,7 @@ export const CustomerStep: React.FC = () => {
               />
             </Box>
             
-            {/* Show warning if non-FNB bank is selected */}
-            {selectedBankName && !isFNBBank(selectedBankName) && (
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <Alert severity="warning" icon={<WarningIcon />}>
-                  {getNonFNBWarning(selectedBankName)}
-                </Alert>
-              </Box>
-            )}
+            {/* FNB warning removed as requested */}
             
             {/* Bank Branch - Autocomplete filtered by province */}
             <Box>
@@ -523,17 +536,22 @@ export const CustomerStep: React.FC = () => {
                 name="bankBranch"
                 control={control}
                 render={({ field, fieldState: { error } }) => {
-                  // Filter branches by province first, then by bank if needed
+                  // Filter branches by province first
                   const provinceFilteredBranches = selectedProvince 
                     ? getBranchesForProvince(selectedProvince)
                     : allValidBranches;
                   
-                  // For FNB, further filter by bank
-                  const availableBranches = selectedBankName && isFNBBank(selectedBankName)
-                    ? provinceFilteredBranches.filter(branch => 
-                        getBranchesForBank(selectedBankName).includes(branch as any)
-                      )
-                    : provinceFilteredBranches;
+                  // Further filter by selected bank if one is selected
+                  let availableBranches = provinceFilteredBranches;
+                  if (selectedBankName) {
+                    const bankId = getBankIdFromName(selectedBankName);
+                    const bankFilteredBranches = bankId ? getBranchesForBank(bankId) : allValidBranches;
+                    
+                    // Intersect province and bank filtered branches
+                    availableBranches = provinceFilteredBranches.filter(branch => 
+                      bankFilteredBranches.includes(branch as any)
+                    );
+                  }
                   
                   return (
                     <Autocomplete
@@ -722,7 +740,28 @@ export const CustomerStep: React.FC = () => {
             </Box>
             <Box><FormNRCField name="nextOfKin.nrc" control={control} label="NRC" /></Box>
             <Box><FormTextField name="nextOfKin.nationality" control={control} label="Nationality" /></Box>
-            <Box><FormTextField name="nextOfKin.relationship" control={control} label="Relationship" /></Box>
+            <Box>
+              <Controller
+                name="nextOfKin.relationship"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    select
+                    label="Relationship"
+                    fullWidth
+                    error={!!error}
+                    helperText={error?.message}
+                  >
+                    {Object.entries(RELATIONSHIP_ID_MAP).map(([name, id]) => (
+                      <MenuItem key={id} value={name}>
+                        {id} - {name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Box>
           </Box>
         </Section>
         <Section title="Reference" toggle open={openRef} onToggle={()=>setOpenRef(o=>!o)} subtitle="Professional or character reference">
@@ -732,7 +771,28 @@ export const CustomerStep: React.FC = () => {
             <Box><FormTextField name="reference.email" control={control} label="Email" /></Box>
             <Box sx={{ gridColumn:'1 / -1' }}><FormTextField name="reference.address" control={control} label="Address" /></Box>
             <Box><FormNRCField name="reference.nrc" control={control} label="NRC" /></Box>
-            <Box><FormTextField name="reference.relationship" control={control} label="Relationship" /></Box>
+            <Box>
+              <Controller
+                name="reference.relationship"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    select
+                    label="Relationship"
+                    fullWidth
+                    error={!!error}
+                    helperText={error?.message}
+                  >
+                    {Object.entries(RELATIONSHIP_ID_MAP).map(([name, id]) => (
+                      <MenuItem key={id} value={name}>
+                        {id} - {name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Box>
           </Box>
         </Section>
       </Stack>

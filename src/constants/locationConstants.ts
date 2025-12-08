@@ -1,10 +1,10 @@
 /**
  * Location Constants for ALTUS Loan Application
- * 
+ *
  * Contains provinces, cities, and their relationships for cascading dropdowns.
  * Based on the 29 confirmed ALTUS Production API branches.
- * 
- * Last updated: December 3, 2025
+ *
+ * Last updated: December 6, 2025
  */
 
 // ============================================================================
@@ -12,14 +12,17 @@
 // ============================================================================
 
 export const provinces = [
-  'Lusaka Province',
-  'Copperbelt Province',
-  'Northern Province',
-  'Luapula Province',
-  'Eastern Province',
-  'North-Western Province',
-  'Central Province',
-  'Southern Province', // Added for future expansion
+  'Central',
+  'Copperbelt',
+  'Eastern',
+  'Luapula',
+  'Lusaka',
+  'Muchinga',
+  'Northern',
+  'North-Western',
+  'Southern',
+  'Western',
+  'Others'
 ] as const;
 
 export type ProvinceName = typeof provinces[number];
@@ -30,63 +33,158 @@ export type ProvinceName = typeof provinces[number];
 
 /**
  * Cities and districts grouped by province.
- * Inferred from branch locations and Zambian geography.
+ * Based on the comprehensive DISTRICT_ID_MAP from ALTUS API.
+ * Corrected province-district mappings based on administrative divisions.
  */
 export const citiesByProvince: Record<string, readonly string[]> = {
-  'Lusaka Province': [
-    'Lusaka',
-    'Lusaka CBD',
-    'Kalingalinga',
-    'Matero',
-    'Chilenje',
-    'Kabulonga',
-    'Longacres',
-    'Garden Compound',
-  ] as const,
-  
-  'Copperbelt Province': [
-    'Ndola',
-    'Kitwe',
-    'Chingola',
-    'Chililabombwe',
-    'Mufulira',
-    'Luanshya',
-  ] as const,
-  
-  'Northern Province': [
-    'Kasama',
-    'Mpulungu',
-    'Mbala',
-  ] as const,
-  
-  'Luapula Province': [
-    'Mansa',
-    'Mwense',
-  ] as const,
-  
-  'Eastern Province': [
-    'Chipata',
-    'Petauke',
-  ] as const,
-  
-  'North-Western Province': [
-    'Solwezi',
-    'Mufumbwe',
-    'Kasempa',
-  ] as const,
-  
-  'Central Province': [
+  'Central': [
     'Kabwe',
-    'Mkushi',
+    'Chibombo',
+    'Itezhi-tezhi',
+    'Shibuyunji',
     'Kapiri Mposhi',
+    'Chitambo',
+    'Luano',
+    'Mkushi',
+    'Mumbwa',
+    'Ngabwe',
+    'Chisamba',
+    'Serenje'
   ] as const,
-  
-  'Southern Province': [
-    'Livingstone',
+
+  'Copperbelt': [
+    'Chililabombwe',
+    'Chingola',
+    'Kalulushi',
+    'Kitwe',
+    'Luanshya',
+    'Lufwanyama',
+    'Masaiti',
+    'Mpongwe',
+    'Mufulira',
+    'Ndola',
+    'Chambishi'
+  ] as const,
+
+  'Eastern': [
+    'Chadiza',
+    'Chasefu',
+    'Chipangali',
+    'Chipata',
+    'Kasenengwa',
+    'Katete',
+    'Lumezi',
+    'Lundazi',
+    'Lusangazi',
+    'Mambwe',
+    'Nyimba',
+    'Petauke',
+    'Sinda District',
+    'Vubwi'
+  ] as const,
+
+  'Luapula': [
+    'Chembe',
+    'Chiengi',
+    'Chifunabuli',
+    'Chipili',
+    'Kawambwa',
+    'Lunga',
+    'Mansa',
+    'Milenge',
+    'Mwansabombwe',
+    'Mwense',
+    'Nchelenge',
+    'Samfya'
+  ] as const,
+
+  'Lusaka': [
+    'Chilanga',
+    'Chongwe',
+    'Kafue',
+    'Luangwa',
+    'Lusaka',
+    'Rufunsa'
+  ] as const,
+
+  'Muchinga': [
+    'Chinsali',
+    'Chama',
+    'Isoka',
+    'Mafinga',
+    'Mpika',
+    'Nakonde',
+    'Shiwang\'andu',
+    'Lavushimanda',
+    'Kanchibiya'
+  ] as const,
+
+  'Northern': [
+    'Chilubi',
+    'Kaputa',
+    'Kasama',
+    'Luwingu',
+    'Mbala',
+    'Mporokoso',
+    'Mpulungu',
+    'Mungwi',
+    'Lupososhi',
+    'Senga Hill',
+    'Lunte',
+    'Nsama'
+  ] as const,
+
+  'North-Western': [
+    'Chavuma',
+    'Ikelenge',
+    'Kabompo',
+    'Kalumbila',
+    'Kasempa',
+    'Manyinga',
+    'Mufumbwe',
+    'Mushindamo',
+    'Mwinilunga',
+    'Solwezi'
+  ] as const,
+
+  'Southern': [
+    'Chikankata',
     'Choma',
-    'Mazabuka',
+    'Chirundu',
+    'Gwembe',
+    'Itezhi Tehzi',
     'Kalomo',
+    'Kazungula',
+    'Mazabuka',
+    'Monze',
+    'Namwala',
+    'Livingstone',
+    'Pemba',
+    'Siavonga',
+    'Sinazongwe',
+    'Zimba'
   ] as const,
+
+  'Western': [
+    'Kaoma',
+    'Kalabo',
+    'Limulunga',
+    'Luampa',
+    'Lukulu',
+    'Mitete',
+    'Mongu',
+    'Mulobezi',
+    'Mwandi',
+    'Nalolo',
+    'Nkeyema',
+    'Senanga',
+    'Sesheke',
+    'Shangombo',
+    'Sikongo',
+    'Sioma'
+  ] as const,
+
+  'Others': [] as const
 } as const;
 
 // ============================================================================
@@ -96,7 +194,7 @@ export const citiesByProvince: Record<string, readonly string[]> = {
 /**
  * Bank branches grouped by province.
  * These are the 29 CONFIRMED branches accepted by ALTUS Production API.
- * 
+ *
  * DO NOT modify unless confirmed by actual API error messages.
  */
 export const branchByProvince: Record<string, readonly string[]> = {
@@ -114,7 +212,7 @@ export const branchByProvince: Record<string, readonly string[]> = {
     'Manda Hill Branch',
     'Matero Branch',
   ] as const,
-  
+
   'Copperbelt Province': [
     'Ndola',
     'Kitwe',
@@ -122,34 +220,34 @@ export const branchByProvince: Record<string, readonly string[]> = {
     'Chililabombwe',
     'Chingola',
   ] as const,
-  
+
   'Northern Province': [
     'Kasama',
     'Mpulungu',
     'Mbala',
     'Mbala Branch Zambia',
   ] as const,
-  
+
   'Luapula Province': [
     'Mansa',
     'Mansa Branch',
     'Mwense',
   ] as const,
-  
+
   'Eastern Province': [
     'Chipata',
     'Petauke Branch',
   ] as const,
-  
+
   'North-Western Province': [
     'Solwezi',
     'Mufumbwe',
   ] as const,
-  
+
   'Central Province': [
     'Mkushi Branch',
   ] as const,
-  
+
   'Southern Province': [
     // No branches confirmed yet - placeholder for future
   ] as const,
@@ -170,7 +268,23 @@ export const getCitiesForProvince = (province: string): readonly string[] => {
  * Get all branches for a given province
  */
 export const getBranchesForProvince = (province: string): readonly string[] => {
-  return branchByProvince[province] || [];
+  // Map province names to the keys used in branchByProvince
+  const provinceKeyMap: Record<string, string> = {
+    'Central': 'Central Province',
+    'Copperbelt': 'Copperbelt Province', 
+    'Eastern': 'Eastern Province',
+    'Luapula': 'Luapula Province',
+    'Lusaka': 'Lusaka Province',
+    'Muchinga': 'Muchinga Province',
+    'Northern': 'Northern Province',
+    'North-Western': 'North-Western Province',
+    'Southern': 'Southern Province',
+    'Western': 'Western Province',
+    'Others': 'Others Province'
+  };
+  
+  const provinceKey = provinceKeyMap[province] || province;
+  return branchByProvince[provinceKey] || [];
 };
 
 /**
