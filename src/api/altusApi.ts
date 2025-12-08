@@ -638,23 +638,28 @@ export async function createRetailCustomer(data: RetailCustomerRequest): Promise
         Title: mapToCode(data.title, TITLE_ID_MAP, "Title"),
         DOB: formatDateForAltus(data.dateOfBirth),
         FinancialInstitutionName: mapToCode(data.bankDetails.bankName, BANK_ID_MAP, "FinancialInstitutionName"),
-        FinancialInstitutionBranchName: mapToCode((() => {
+        FinancialInstitutionBranchName: (() => {
+          const bankName = data.bankDetails.bankName;
           const providedBranch = data.bankDetails.branchCode;
           
-          // If valid, use as-is
-          if (isValidBranchName(providedBranch)) {
-            return providedBranch;
+          // Resolve branch name (may need to match or default)
+          let resolvedBranch = providedBranch;
+          if (!isValidBranchName(providedBranch)) {
+            const matchedBranch = getBranchByPartialMatch(providedBranch);
+            resolvedBranch = matchedBranch || getDefaultBranchForProvince(data.address.province);
           }
           
-          // Try to find matching branch by partial name
-          const matchedBranch = getBranchByPartialMatch(providedBranch);
-          if (matchedBranch) {
-            return matchedBranch;
+          // Get the FIBranchId from the nested map
+          const branchIdMap = BANK_BRANCH_ID_MAP[bankName];
+          if (branchIdMap && branchIdMap[resolvedBranch]) {
+            const fibBranchId = branchIdMap[resolvedBranch];
+            console.log(`[createRetailCustomer] Mapped branch "${resolvedBranch}" to FIBranchId: "${fibBranchId}"`);
+            return fibBranchId;
           }
           
-          // Fall back to province-based default
-          return getDefaultBranchForProvince(data.address.province);
-        })(), BANK_BRANCH_ID_MAP, "FinancialInstitutionBranchName"),
+          console.warn(`[createRetailCustomer] No FIBranchId found for bank="${bankName}" branch="${resolvedBranch}". Using branch name as fallback.`);
+          return resolvedBranch;
+        })(),
         AccountNumber: data.bankDetails.accountNumber,
         AccountType: data.bankDetails.accountType,
         // Add ID fields
