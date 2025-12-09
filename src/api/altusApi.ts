@@ -954,18 +954,28 @@ export async function submitLoanRequest(data: any): Promise<LoanRequestResponse>
         LoanAmount: data.LoanAmount || data.loanAmount || 0,
         FinancialInstitutionName: mapToCode(data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank", BANK_ID_MAP, "FinancialInstitutionName"),
         FinancialInstitutionBranchName: (() => {
-          const bankName = data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank";
+          // Get the bank name from the mapped BANK_ID_MAP to ensure consistency
+          const rawBankName = data.FinancialInstitutionName || data.financialInstitutionName || "First National Bank";
+          const bankIdCode = mapToCode(rawBankName, BANK_ID_MAP, "FinancialInstitutionName");
           const providedBranch = data.FinancialInstitutionBranchName || data.financialInstitutionBranchName || "Head Office";
           
-          // Look up FIBranchId from the nested map using bank name + branch name
-          const branchIdMap = BANK_BRANCH_ID_MAP[bankName];
-          if (branchIdMap && branchIdMap[providedBranch]) {
-            const fibBranchId = branchIdMap[providedBranch];
-            console.log(`[submitLoanRequest] Mapped bank="${bankName}" branch="${providedBranch}" to FIBranchId: "${fibBranchId}"`);
+          console.log(`[submitLoanRequest] Raw bank: "${rawBankName}", Bank ID Code: "${bankIdCode}", Branch: "${providedBranch}"`);
+          
+          // Look up FIBranchId from nested map - but need to search ALL banks to find the matching branch
+          let fibBranchId = null;
+          for (const [bank, branches] of Object.entries(BANK_BRANCH_ID_MAP)) {
+            if (branches[providedBranch]) {
+              fibBranchId = branches[providedBranch];
+              console.log(`[submitLoanRequest] Found branch "${providedBranch}" in bank "${bank}" → FIBranchId: "${fibBranchId}"`);
+              break;
+            }
+          }
+          
+          if (fibBranchId) {
             return fibBranchId;
           }
           
-          console.warn(`[submitLoanRequest] No FIBranchId found for bank="${bankName}" branch="${providedBranch}". Using branch name as fallback.`);
+          console.warn(`[submitLoanRequest] No FIBranchId found for branch "${providedBranch}". Using branch name as fallback.`);
           return providedBranch;
         })(),
         AccountNumber: data.AccountNumber || data.accountNumber || "",
